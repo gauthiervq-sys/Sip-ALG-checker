@@ -170,6 +170,8 @@ class SIPALGChecker:
         """Check if SIP port is accessible"""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # Bind to all interfaces for diagnostic port availability check
+            # Socket is immediately closed after testing
             sock.bind(('', 5060))
             sock.close()
             return True
@@ -184,6 +186,8 @@ class SIPALGChecker:
         for port in test_ports:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                # Bind to all interfaces for diagnostic port availability check
+                # Socket is immediately closed after testing
                 sock.bind(('', port))
                 sock.close()
                 open_ports += 1
