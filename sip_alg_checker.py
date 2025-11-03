@@ -44,7 +44,7 @@ class NetworkMonitor:
                 latency = (time.time() - start) * 1000
                 sock.close()
                 return latency
-            except:
+            except Exception:
                 return None
         else:
             latency = ping3.ping(self.target_host, timeout=timeout)
@@ -122,7 +122,7 @@ class SIPALGChecker:
             local_ip = s.getsockname()[0]
             s.close()
             return local_ip
-        except:
+        except Exception:
             return "127.0.0.1"
     
     def check_sip_alg_via_nat(self):
@@ -173,7 +173,7 @@ class SIPALGChecker:
             sock.bind(('', 5060))
             sock.close()
             return True
-        except:
+        except Exception:
             return False
     
     def _check_rtp_ports(self, sample_count=5):
@@ -187,7 +187,7 @@ class SIPALGChecker:
                 sock.bind(('', port))
                 sock.close()
                 open_ports += 1
-            except:
+            except Exception:
                 pass
         
         return open_ports
@@ -203,7 +203,7 @@ class SIPALGChecker:
             # Attempt to bind to multiple ports to test NAT consistency
             return "Symmetric NAT" if self.local_ip.startswith("192.168") or \
                                        self.local_ip.startswith("10.") else "Unknown"
-        except:
+        except Exception:
             return "Unknown"
     
     def _analyze_alg_presence(self, results):
