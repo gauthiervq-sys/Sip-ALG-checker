@@ -44,7 +44,7 @@ class NetworkMonitor:
                 latency = (time.time() - start) * 1000
                 sock.close()
                 return latency
-            except Exception:
+            except:
                 return None
         else:
             latency = ping3.ping(self.target_host, timeout=timeout)
@@ -122,7 +122,7 @@ class SIPALGChecker:
             local_ip = s.getsockname()[0]
             s.close()
             return local_ip
-        except Exception:
+        except:
             return "127.0.0.1"
     
     def check_sip_alg_via_nat(self):
@@ -170,12 +170,10 @@ class SIPALGChecker:
         """Check if SIP port is accessible"""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            # Bind to all interfaces for diagnostic port availability check
-            # Socket is immediately closed after testing
             sock.bind(('', 5060))
             sock.close()
             return True
-        except Exception:
+        except:
             return False
     
     def _check_rtp_ports(self, sample_count=5):
@@ -186,12 +184,10 @@ class SIPALGChecker:
         for port in test_ports:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                # Bind to all interfaces for diagnostic port availability check
-                # Socket is immediately closed after testing
                 sock.bind(('', port))
                 sock.close()
                 open_ports += 1
-            except Exception:
+            except:
                 pass
         
         return open_ports
@@ -206,8 +202,8 @@ class SIPALGChecker:
             sock.settimeout(2)
             # Attempt to bind to multiple ports to test NAT consistency
             return "Symmetric NAT" if self.local_ip.startswith("192.168") or \
-                                     self.local_ip.startswith("10.") else "Unknown"
-        except Exception:
+                                       self.local_ip.startswith("10.") else "Unknown"
+        except:
             return "Unknown"
     
     def _analyze_alg_presence(self, results):
@@ -218,8 +214,8 @@ class SIPALGChecker:
         # - Limited RTP port availability
         
         behind_nat = (self.local_ip.startswith("192.168") or 
-                      self.local_ip.startswith("10.") or 
-                      self.local_ip.startswith("172."))
+                     self.local_ip.startswith("10.") or 
+                     self.local_ip.startswith("172."))
         
         if not behind_nat:
             return "UNLIKELY"
@@ -238,11 +234,11 @@ class SIPALGChecker:
         """Get recommendation based on analysis"""
         if results['sip_alg_detected'] == "LIKELY":
             return ("SIP ALG is likely interfering with your VoIP traffic. "
-                    "Recommendation: Disable SIP ALG in your router settings. "
-                    "This typically improves VoIP call quality and reduces connection issues.")
+                   "Recommendation: Disable SIP ALG in your router settings. "
+                   "This typically improves VoIP call quality and reduces connection issues.")
         elif results['sip_alg_detected'] == "POSSIBLE":
             return ("SIP ALG may be present. If experiencing VoIP issues, "
-                    "try disabling SIP ALG in your router settings.")
+                   "try disabling SIP ALG in your router settings.")
         else:
             return "No strong indication of SIP ALG interference detected."
 
@@ -293,7 +289,7 @@ def monitor_network(target_host, duration=60, interval=1, output_file=None):
             print_stats(stats, clear_screen=True)
             time.sleep(interval)
     except KeyboardInterrupt:
-        print("\n\DMonitoring stopped by user.")
+        print("\n\nMonitoring stopped by user.")
     
     # Final summary
     final_stats = monitor.get_stats()
