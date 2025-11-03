@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Complete Beginner's Guide to SIP ALG Checker & Asterisk Security
 
 This guide is for users with basic Asterisk and Linux knowledge. We'll walk through everything step-by-step, explaining what each command does and why.
@@ -957,3 +958,123 @@ Asterisk Documentation: https://wiki.asterisk.org/
 SIP ALG Information: https://www.voip-info.org/sip-alg/
 
 Remember: Security is an ongoing process. Check your logs, run audits regularly, and keep your system updated!
+=======
+# Quick Start Guide
+
+Get started with SIP ALG Checker in 5 minutes!
+
+## Installation
+
+```bash
+# Clone and setup
+git clone https://github.com/gauthiervq-sys/Sip-ALG-checker.git
+cd Sip-ALG-checker
+pip install -r requirements.txt
+chmod +x sip_alg_checker.py
+```
+
+## Basic Usage
+
+### 1. Check for SIP ALG
+The quickest way to see if SIP ALG is interfering with your VoIP:
+
+```bash
+python3 sip_alg_checker.py --check-alg
+```
+
+**What to look for:**
+- Status: LIKELY → Disable SIP ALG in your router
+- Status: POSSIBLE → Monitor for VoIP issues
+- Status: UNLIKELY → SIP ALG not a problem
+
+### 2. Monitor Network Quality
+Check your network quality for VoIP calls:
+
+```bash
+# Monitor for 2 minutes
+python3 sip_alg_checker.py --monitor 8.8.8.8 --duration 120
+```
+
+**Replace `8.8.8.8` with:**
+- Your SIP server IP/hostname
+- Your VoIP provider's server
+- Any network target you want to monitor
+
+**Quality indicators:**
+- **Jitter**: Should be < 30ms (lower is better)
+- **Packet Loss**: Should be < 1% (0% is ideal)
+- **Latency**: Should be < 150ms (lower is better)
+
+### 3. Save Results for Analysis
+Monitor and save data for later review:
+
+```bash
+python3 sip_alg_checker.py --monitor YOUR_SERVER --duration 300 --output results.json
+```
+
+## Common Scenarios
+
+### Troubleshooting Bad Call Quality
+```bash
+# Check both SIP ALG and network quality
+python3 sip_alg_checker.py --check-alg --monitor YOUR_SIP_SERVER --duration 180
+```
+
+### Baseline Testing
+```bash
+# Test during known good conditions
+python3 sip_alg_checker.py --monitor YOUR_SERVER --duration 600 --output baseline.json
+
+# Test during problematic times
+python3 sip_alg_checker.py --monitor YOUR_SERVER --duration 600 --output problem.json
+
+# Compare the JSON files to identify issues
+```
+
+### Long-term Monitoring
+```bash
+# Monitor for 1 hour with 5-second checks
+python3 sip_alg_checker.py --monitor YOUR_SERVER --duration 3600 --interval 5 --output hourly.json
+```
+
+## Understanding Results
+
+### Quality Assessment
+- **EXCELLENT**: Ready for VoIP - no issues detected
+- **GOOD**: Acceptable for VoIP - minor variations
+- **FAIR**: Marginal - may experience occasional issues
+- **POOR**: Not suitable - expect call quality problems
+
+### SIP ALG Status
+- **UNLIKELY**: No interference detected
+- **POSSIBLE**: May be interfering - investigate if having issues
+- **LIKELY**: Interfering with VoIP - disable SIP ALG
+
+## Next Steps
+
+1. If SIP ALG is detected as "LIKELY":
+   - Access your router settings
+   - Find and disable SIP ALG (may be under NAT, Firewall, or ALG settings)
+   - Reboot your router
+   - Test again
+
+2. If network quality is "POOR":
+   - Check your internet connection
+   - Test at different times of day
+   - Contact your ISP if consistent issues
+   - Consider QoS settings on your router
+
+3. For persistent issues:
+   - Run long-term monitoring (24 hours)
+   - Save results to share with support teams
+   - Compare different times and network conditions
+
+## Need More Help?
+
+See the full [README.md](README.md) for:
+- Detailed command-line options
+- Configuration file setup
+- Advanced usage examples
+- Troubleshooting guide
+- How to disable SIP ALG on various routers
+>>>>>>> b97b9f6 (Add quick start guide and example usage script)
