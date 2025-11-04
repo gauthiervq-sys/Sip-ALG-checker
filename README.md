@@ -20,6 +20,7 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
 
 - **🎯 Asterisk PBX Setup**: See [ASTERISK_SETUP.md](ASTERISK_SETUP.md) for complete Asterisk integration
 - **⚡ Quick Asterisk Setup (193.105.36.4)**: See [QUICK_SETUP_193.105.36.4.md](QUICK_SETUP_193.105.36.4.md)
+- **🔒 Security Guide**: See [SECURITY.md](SECURITY.md) for protecting against toll fraud and unauthorized access
 - **🚀 Quick Start**: See [QUICK_START.md](QUICK_START.md) for getting started in 5 minutes
 
 ## Installation
@@ -52,6 +53,24 @@ pip install ping3
 # On Linux, to allow non-root ping:
 sudo setcap cap_net_raw+ep $(which python3)
 ```
+
+## ⚠️ Security Warning for Asterisk Servers
+
+If you're running this on an Asterisk server, **protect your server from toll fraud and unauthorized access**:
+
+```bash
+# Run the security hardening script
+sudo bash secure-asterisk.sh
+```
+
+This will configure:
+- Firewall with rate limiting
+- Fail2ban for SIP protection  
+- Secure file permissions
+- Strong password requirements
+- Outbound calling restrictions
+
+**See [SECURITY.md](SECURITY.md) for complete security guide.**
 
 ## Usage
 
