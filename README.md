@@ -18,6 +18,7 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
 
 ## Special Guides
 
+- **📚 BEGINNER'S GUIDE**: See [BEGINNER_GUIDE.md](BEGINNER_GUIDE.md) - **START HERE** if you're new to Asterisk or Linux
 - **🎯 Asterisk PBX Setup**: See [ASTERISK_SETUP.md](ASTERISK_SETUP.md) for complete Asterisk integration
 - **⚡ Quick Asterisk Setup (193.105.36.4)**: See [QUICK_SETUP_193.105.36.4.md](QUICK_SETUP_193.105.36.4.md)
 - **🔒 Security Guide**: See [SECURITY.md](SECURITY.md) for protecting against toll fraud and unauthorized access
