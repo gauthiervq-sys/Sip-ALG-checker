@@ -1,0 +1,25 @@
+{
+  "monitoring": {
+    "default_target": "8.8.8.8",
+    "default_duration": 60,
+    "default_interval": 1,
+    "sample_size": 30
+  },
+  "thresholds": {
+    "excellent_jitter_ms": 10,
+    "good_jitter_ms": 20,
+    "fair_jitter_ms": 30,
+    "excellent_packet_loss_percent": 0.5,
+    "good_packet_loss_percent": 1.0
+  },
+  "sip": {
+    "sip_port": 5060,
+    "rtp_port_range": [10000, 20000],
+    "test_ports": [10000, 12000, 14000, 16000, 18000]
+  },
+  "output": {
+    "clear_screen": true,
+    "save_all_measurements": true,
+    "timestamp_format": "iso"
+  }
+}
