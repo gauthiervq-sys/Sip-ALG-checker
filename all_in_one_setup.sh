@@ -139,7 +139,8 @@ fi
 # Install Python dependencies
 echo ""
 echo "Installing Python dependencies..."
-pip3 install --upgrade --break-system-packages pip
+# Note: Skipping pip upgrade as it can cause issues with externally-managed environments (PEP 668)
+# Using --break-system-packages flag below to allow system-wide installation on Debian/Ubuntu
 pip3 install --break-system-packages ping3>=4.0.0
 
 # Clone or update repository

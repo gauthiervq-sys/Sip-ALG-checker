@@ -27,7 +27,8 @@ echo "✓ Dependencies installed"
 
 echo ""
 echo "Step 2: Installing Python packages..."
-pip3 install -q ping3 || echo "  (ping3 optional - will work without it)"
+# Using --break-system-packages to allow installation on externally-managed environments (PEP 668)
+pip3 install --break-system-packages -q ping3>=4.0.0 || echo "  (ping3 optional - will work without it)"
 echo "✓ Python packages installed"
 
 echo ""
