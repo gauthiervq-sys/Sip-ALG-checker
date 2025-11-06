@@ -441,13 +441,42 @@ if [ -d "/var/www/html" ]; then
     if mkdir -p "$DASHBOARD_DIR" 2>/dev/null; then
         cat > "$DASHBOARD_DIR/index.php" << EOFDASH
 <?php
+// Configuration - hardcoded for security
 \$log_dir = '$LOG_DIR';
 \$wan_ip = '$WAN_IP';
+
+// Get latest quality file
 \$latest = shell_exec("ls -t \$log_dir/quality-*.json 2>/dev/null | head -1");
 if (\$latest) {
     \$data = json_decode(file_get_contents(trim(\$latest)), true);
 } else {
     \$data = ['summary' => ['packet_loss_percent' => 0, 'jitter_ms' => 0, 'avg_latency_ms' => 0, 'timestamp' => 'No data yet']];
+}
+
+// Get latest ALG check log
+\$alg_status = 'UNKNOWN';
+\$alg_timestamp = 'No check performed yet';
+\$alg_files = glob(\$log_dir . '/alg-check-*.log');
+if (\$alg_files) {
+    usort(\$alg_files, function(\$a, \$b) { return filemtime(\$b) - filemtime(\$a); });
+    \$alg_log = \$alg_files[0];
+    \$alg_content = file_get_contents(\$alg_log);
+    \$alg_timestamp = date('Y-m-d H:i:s', filemtime(\$alg_log));
+    
+    // Parse SIP ALG status from log
+    if (preg_match('/SIP ALG Status: (LIKELY|UNLIKELY|POSSIBLE)/', \$alg_content, \$matches)) {
+        \$alg_status = \$matches[1];
+    } elseif (preg_match('/sip_alg_detected.*?: ["\']?(LIKELY|UNLIKELY|POSSIBLE)["\']?/', \$alg_content, \$matches)) {
+        \$alg_status = \$matches[1];
+    }
+}
+
+// Determine ALG status class
+\$alg_class = 'good';
+if (\$alg_status == 'LIKELY') {
+    \$alg_class = 'poor';
+} elseif (\$alg_status == 'POSSIBLE') {
+    \$alg_class = 'fair';
 }
 ?>
 <!DOCTYPE html>
@@ -456,42 +485,91 @@ if (\$latest) {
     <title>SIP ALG Status - <?php echo \$wan_ip; ?></title>
     <meta http-equiv="refresh" content="300">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .metric { margin: 10px 0; }
-        .good { color: green; }
-        .fair { color: orange; }
-        .poor { color: red; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+        h2 { color: #666; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .section { margin-top: 20px; }
+        .alg-status-box { padding: 15px; margin: 15px 0; border-radius: 8px; font-size: 1.2em; font-weight: bold; text-align: center; }
+        .alg-status-box.good { background: #d4edda; border: 2px solid #28a745; color: #155724; }
+        .alg-status-box.fair { background: #fff3cd; border: 2px solid #ffc107; color: #856404; }
+        .alg-status-box.poor { background: #f8d7da; border: 2px solid #dc3545; color: #721c24; }
+        .metric { margin: 15px 0; padding: 10px; background: #f9f9f9; border-left: 4px solid #ccc; }
+        .metric strong { display: inline-block; width: 150px; }
+        .good { border-left-color: green; color: green; }
+        .fair { border-left-color: orange; color: orange; }
+        .poor { border-left-color: red; color: red; }
+        .timestamp { color: #999; font-size: 0.9em; margin-top: 10px; }
+        .button { display: inline-block; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+        .button:hover { background: #0052a3; cursor: pointer; }
+        .header-info { color: #666; font-size: 0.95em; }
     </style>
 </head>
 <body>
-    <h1>SIP Quality Monitor</h1>
-    <h2>Server: <?php echo \$wan_ip; ?></h2>
-    <div class="metric">
-        <strong>Packet Loss:</strong> 
-        <span class="<?php echo \$data['summary']['packet_loss_percent'] > 1 ? 'poor' : 'good'; ?>">
-            <?php echo \$data['summary']['packet_loss_percent']; ?>%
-        </span>
+    <div class="container">
+        <h1>SIP ALG Checker Dashboard</h1>
+        <p class="header-info">Server: <strong><?php echo \$wan_ip; ?></strong></p>
+        
+        <!-- SIP ALG Status Section -->
+        <div class="section">
+            <h2>🔍 SIP ALG Status</h2>
+            <div class="alg-status-box <?php echo \$alg_class; ?>">
+                SIP ALG: <?php echo \$alg_status; ?>
+            </div>
+            <div class="timestamp">
+                <em>Last ALG check: <?php echo \$alg_timestamp; ?></em>
+            </div>
+            <?php if (\$alg_status == 'LIKELY'): ?>
+                <p style="color: #721c24; margin-top: 10px;">
+                    ⚠️ <strong>Action Required:</strong> SIP ALG is likely interfering with VoIP traffic. 
+                    Disable SIP ALG in your router settings to improve call quality.
+                </p>
+            <?php elseif (\$alg_status == 'POSSIBLE'): ?>
+                <p style="color: #856404; margin-top: 10px;">
+                    ℹ️ SIP ALG may be present. If experiencing VoIP issues, try disabling SIP ALG in your router.
+                </p>
+            <?php endif; ?>
+        </div>
+        
+        <!-- Network Quality Section -->
+        <div class="section">
+            <h2>📊 Network Quality Metrics</h2>
+            
+            <div class="metric <?php echo \$data['summary']['packet_loss_percent'] > 1 ? 'poor' : 'good'; ?>">
+                <strong>Packet Loss:</strong> 
+                <?php echo \$data['summary']['packet_loss_percent']; ?>%
+            </div>
+            
+            <div class="metric <?php echo \$data['summary']['jitter_ms'] > 30 ? 'poor' : (\$data['summary']['jitter_ms'] > 20 ? 'fair' : 'good'); ?>">
+                <strong>Jitter:</strong> 
+                <?php echo \$data['summary']['jitter_ms']; ?>ms
+            </div>
+            
+            <div class="metric <?php echo \$data['summary']['avg_latency_ms'] > 150 ? 'poor' : 'good'; ?>">
+                <strong>Avg Latency:</strong> 
+                <?php echo \$data['summary']['avg_latency_ms']; ?>ms
+            </div>
+            
+            <div class="timestamp">
+                <em>Last quality check: <?php echo \$data['summary']['timestamp']; ?></em>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="?refresh=1" class="button">🔄 Run Full Check Now</a>
+        </div>
+        
+        <p style="text-align: center; color: #999; font-size: 0.85em; margin-top: 20px;">
+            <em>Page auto-refreshes every 5 minutes</em>
+        </p>
     </div>
-    <div class="metric">
-        <strong>Jitter:</strong> 
-        <span class="<?php echo \$data['summary']['jitter_ms'] > 30 ? 'poor' : (\$data['summary']['jitter_ms'] > 20 ? 'fair' : 'good'); ?>">
-            <?php echo \$data['summary']['jitter_ms']; ?>ms
-        </span>
-    </div>
-    <div class="metric">
-        <strong>Avg Latency:</strong> 
-        <span class="<?php echo \$data['summary']['avg_latency_ms'] > 150 ? 'poor' : 'good'; ?>">
-            <?php echo \$data['summary']['avg_latency_ms']; ?>ms
-        </span>
-    </div>
-    <p><em>Last updated: <?php echo \$data['summary']['timestamp']; ?></em></p>
-    <p><a href="?refresh=1">Refresh Now</a></p>
 </body>
 </html>
 <?php
 if (isset(\$_GET['refresh'])) {
-    shell_exec('$CHECK_SCRIPT');
+    shell_exec('$CHECK_SCRIPT > /dev/null 2>&1 &');
     header("Location: index.php");
+    exit;
 }
 ?>
 EOFDASH
