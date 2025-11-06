@@ -23,6 +23,8 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
 - **⚡ Quick Asterisk Setup (193.105.36.4)**: See [QUICK_SETUP_193.105.36.4.md](QUICK_SETUP_193.105.36.4.md)
 - **🔒 Security Guide**: See [SECURITY.md](SECURITY.md) for protecting against toll fraud and unauthorized access
 - **🚀 Quick Start**: See [QUICK_START.md](QUICK_START.md) for getting started in 5 minutes
+- **✅ Setup Completion**: See [COMPLETE_SETUP_README.md](COMPLETE_SETUP_README.md) for completing partial setup
+- **🔧 Setup Scripts Guide**: See [SETUP_SCRIPTS_GUIDE.md](SETUP_SCRIPTS_GUIDE.md) for choosing the right setup script
 
 ## Installation
 
