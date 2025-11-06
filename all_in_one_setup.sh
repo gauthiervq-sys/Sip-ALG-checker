@@ -2,8 +2,17 @@
 # Complete Asterisk SIP ALG Checker Setup Script
 # This script installs all dependencies, clones/updates the repo, sets up monitoring,
 # and configures basic integration with Asterisk.
+#
+# USAGE:
+#   Download and run as root:
+#     sudo curl -o /tmp/all_in_one_setup.sh https://raw.githubusercontent.com/gauthiervq-sys/Sip-ALG-checker/main/all_in_one_setup.sh
+#     sudo bash /tmp/all_in_one_setup.sh
+#
+#   Or if you already have the repository:
+#     sudo bash all_in_one_setup.sh
 
 set -e
+set -o pipefail
 
 # Configuration
 REPO_URL="https://github.com/gauthiervq-sys/Sip-ALG-checker.git"
@@ -25,58 +34,180 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to print error messages
+error_exit() {
+    echo "ERROR: $1" >&2
+    exit 1
+}
+
+# Function to print warning messages
+warn() {
+    echo "WARNING: $1" >&2
+}
+
 # Check if running as root or with sudo
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run this script with sudo privileges."
+    echo ""
+    echo "ERROR: This script must be run as root or with sudo privileges."
+    echo ""
+    echo "To download and run this script, use one of these methods:"
+    echo ""
+    echo "Method 1: Download to /tmp and run:"
+    echo "  curl -o /tmp/all_in_one_setup.sh https://raw.githubusercontent.com/gauthiervq-sys/Sip-ALG-checker/main/all_in_one_setup.sh"
+    echo "  sudo bash /tmp/all_in_one_setup.sh"
+    echo ""
+    echo "Method 2: Clone repository and run:"
+    echo "  git clone https://github.com/gauthiervq-sys/Sip-ALG-checker.git"
+    echo "  cd Sip-ALG-checker"
+    echo "  sudo bash all_in_one_setup.sh"
+    echo ""
     exit 1
 fi
 
+# Check if /opt directory exists and is writable
+if [ ! -d "/opt" ]; then
+    echo "Creating /opt directory..."
+    mkdir -p /opt || error_exit "Cannot create /opt directory. Check permissions."
+fi
+
+if [ ! -w "/opt" ]; then
+    error_exit "/opt directory is not writable. This script needs write access to /opt."
+fi
+
+# Check for Asterisk installation and port conflicts
+echo "Checking for Asterisk installation..."
+ASTERISK_RUNNING=false
+PORT_5060_IN_USE=false
+
+if command_exists asterisk; then
+    echo "✓ Asterisk is installed"
+    
+    # Check if Asterisk is running
+    if pgrep -x "asterisk" > /dev/null 2>&1; then
+        ASTERISK_RUNNING=true
+        echo "✓ Asterisk is currently running"
+        
+        # Check if port 5060 is in use
+        if netstat -tulpn 2>/dev/null | grep -q ":5060 " || ss -tulpn 2>/dev/null | grep -q ":5060 "; then
+            PORT_5060_IN_USE=true
+            echo "✓ Port 5060 is bound (expected for Asterisk)"
+        else
+            warn "Asterisk is running but port 5060 is not bound. This may indicate a configuration issue."
+        fi
+    else
+        echo "  Asterisk is installed but not currently running"
+    fi
+else
+    warn "Asterisk is not installed. This tool is designed for use with Asterisk PBX."
+    echo "  You can still install the SIP ALG checker, but integration features will be limited."
+    echo ""
+    read -p "Continue without Asterisk? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled."
+        exit 0
+    fi
+fi
+
 # Update package lists
+echo ""
 echo "Updating package lists..."
-apt-get update -y
+if ! apt-get update -y > /dev/null 2>&1; then
+    error_exit "Failed to update package lists. Check your internet connection and apt configuration."
+fi
+echo "✓ Package lists updated"
 
 # Install system dependencies
+echo ""
 echo "Installing system dependencies..."
-apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-dev \
-    git \
-    jq \
-    bc \
-    curl \
-    net-tools \
-    tcpdump \
-    mailutils \
-    postfix  # For email alerts
+REQUIRED_PACKAGES="python3 python3-pip python3-dev git jq bc curl net-tools"
+OPTIONAL_PACKAGES="tcpdump mailutils postfix"
+
+echo "  Installing required packages: $REQUIRED_PACKAGES"
+if ! apt-get install -y $REQUIRED_PACKAGES > /dev/null 2>&1; then
+    error_exit "Failed to install required system dependencies. Check apt configuration."
+fi
+echo "✓ Required packages installed"
+
+echo "  Installing optional packages (email alerts and packet capture): $OPTIONAL_PACKAGES"
+if apt-get install -y $OPTIONAL_PACKAGES > /dev/null 2>&1; then
+    echo "✓ Optional packages installed"
+else
+    warn "Some optional packages could not be installed. Email alerts and tcpdump may not work."
+fi
 
 # Install Python dependencies
+echo ""
 echo "Installing Python dependencies..."
-pip3 install --upgrade pip
-pip3 install ping3>=4.0.0
+if ! pip3 install --upgrade pip > /dev/null 2>&1; then
+    warn "Failed to upgrade pip, continuing with existing version..."
+fi
+
+echo "  Installing ping3 (for network quality monitoring)..."
+if pip3 install "ping3>=4.0.0" > /dev/null 2>&1; then
+    echo "✓ ping3 installed successfully"
+else
+    warn "ping3 installation failed. Network monitoring will use fallback mode."
+    echo "  The tool will still work, but with reduced functionality."
+fi
 
 # Clone or update repository
+echo ""
 if [ -d "$INSTALL_DIR" ]; then
+    echo "Repository already exists at $INSTALL_DIR"
     echo "Updating existing repository..."
-    cd "$INSTALL_DIR"
-    git pull
+    cd "$INSTALL_DIR" || error_exit "Cannot access $INSTALL_DIR"
+    
+    if ! git pull > /dev/null 2>&1; then
+        warn "Failed to update repository. Continuing with existing version..."
+    else
+        echo "✓ Repository updated"
+    fi
 else
-    echo "Cloning repository..."
-    git clone "$REPO_URL" "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
+    echo "Cloning repository from $REPO_URL..."
+    if ! git clone "$REPO_URL" "$INSTALL_DIR" > /dev/null 2>&1; then
+        error_exit "Failed to clone repository. Check internet connection and git configuration."
+    fi
+    echo "✓ Repository cloned to $INSTALL_DIR"
+    cd "$INSTALL_DIR" || error_exit "Cannot access $INSTALL_DIR"
 fi
 
 # Install Python requirements
+echo ""
 if [ -f "requirements.txt" ]; then
-    pip3 install -r requirements.txt
+    echo "Installing Python requirements from requirements.txt..."
+    if pip3 install -r requirements.txt > /dev/null 2>&1; then
+        echo "✓ Python requirements installed"
+    else
+        warn "Some Python requirements failed to install. The tool may have limited functionality."
+    fi
+else
+    warn "requirements.txt not found. Skipping additional Python dependencies."
 fi
 
 # Make main script executable
-chmod +x sip_alg_checker.py
+if [ -f "sip_alg_checker.py" ]; then
+    chmod +x sip_alg_checker.py
+    echo "✓ Main script made executable"
+else
+    error_exit "sip_alg_checker.py not found in repository!"
+fi
 
 # Create log directory
-mkdir -p "$LOG_DIR"
-chown asterisk:asterisk "$LOG_DIR" 2>/dev/null || chown root:root "$LOG_DIR"
+echo ""
+echo "Creating log directory..."
+if ! mkdir -p "$LOG_DIR"; then
+    error_exit "Failed to create log directory: $LOG_DIR"
+fi
+
+# Try to set ownership to asterisk user if available, otherwise use root
+if id "asterisk" >/dev/null 2>&1; then
+    chown asterisk:asterisk "$LOG_DIR" 2>/dev/null || chown root:root "$LOG_DIR"
+    echo "✓ Log directory created and owned by asterisk user"
+else
+    chown root:root "$LOG_DIR"
+    echo "✓ Log directory created (owned by root)"
+fi
 
 # Create the monitoring check script
 echo "Creating monitoring check script..."
@@ -120,9 +251,16 @@ EOFSCRIPT
 chmod +x "$CHECK_SCRIPT"
 
 # Create AGI script for Asterisk integration (optional)
-if [ -d "/var/lib/asterisk/agi-bin" ]; then
-    echo "Creating AGI script for Asterisk integration..."
-    cat > "$AGI_SCRIPT" << 'EOFAGI'
+echo ""
+if [ "$ASTERISK_RUNNING" = true ] || command_exists asterisk; then
+    if [ ! -d "/var/lib/asterisk/agi-bin" ]; then
+        echo "Creating AGI directory..."
+        mkdir -p /var/lib/asterisk/agi-bin || warn "Failed to create AGI directory"
+    fi
+    
+    if [ -d "/var/lib/asterisk/agi-bin" ]; then
+        echo "Creating AGI script for Asterisk integration..."
+        cat > "$AGI_SCRIPT" << 'EOFAGI'
 #!/usr/bin/env python3
 """
 Asterisk AGI Script to check SIP ALG before calls
@@ -174,59 +312,152 @@ sys.exit(0)
 EOFAGI
 
     chmod +x "$AGI_SCRIPT"
-    chown asterisk:asterisk "$AGI_SCRIPT" 2>/dev/null || true
+    if id "asterisk" >/dev/null 2>&1; then
+        chown asterisk:asterisk "$AGI_SCRIPT" 2>/dev/null || chown root:root "$AGI_SCRIPT"
+    fi
+    echo "✓ AGI script created at $AGI_SCRIPT"
+    else
+        warn "AGI directory could not be created. Asterisk integration will be limited."
+    fi
 else
-    echo "Asterisk AGI directory not found. Skipping AGI script creation."
+    echo "Asterisk not detected. Skipping AGI script creation."
+    echo "  (Install Asterisk first if you need AGI integration)"
 fi
 
 # Add cron job for periodic monitoring
-echo "Adding cron job for periodic monitoring..."
+echo ""
+echo "Setting up cron job for periodic monitoring (every 6 hours)..."
 CRON_JOB="0 */6 * * * $CHECK_SCRIPT >/dev/null 2>&1"
-(crontab -l 2>/dev/null | grep -v "$CHECK_SCRIPT" || true; echo "$CRON_JOB") | crontab -
+
+# Remove old cron job if it exists
+(crontab -l 2>/dev/null | grep -v "$CHECK_SCRIPT" || true) | crontab - 2>/dev/null || true
+
+# Add new cron job
+if (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab - 2>/dev/null; then
+    echo "✓ Cron job installed successfully"
+else
+    warn "Failed to install cron job. You may need to set up monitoring manually."
+fi
 
 # Create basic firewall rules (if ufw is available)
+echo ""
 if command_exists ufw; then
-    echo "Configuring basic firewall rules..."
-    ufw allow 5060/udp comment 'SIP' 2>/dev/null || true
-    ufw allow 5060/tcp comment 'SIP' 2>/dev/null || true
-    ufw allow 10000:20000/udp comment 'RTP' 2>/dev/null || true
-    ufw --force enable 2>/dev/null || true
+    echo "Configuring UFW firewall rules for SIP and RTP..."
+    
+    # Check if UFW is active before modifying rules
+    UFW_STATUS=$(ufw status 2>/dev/null | head -1)
+    
+    if ufw allow 5060/udp comment 'SIP' 2>/dev/null && \
+       ufw allow 5060/tcp comment 'SIP' 2>/dev/null && \
+       ufw allow 10000:20000/udp comment 'RTP' 2>/dev/null; then
+        echo "✓ Firewall rules added for SIP (5060) and RTP (10000-20000)"
+    else
+        warn "Failed to add some firewall rules. Check UFW configuration."
+    fi
+    
+    # Only enable UFW if it was already enabled or if this is a new setup
+    if echo "$UFW_STATUS" | grep -q "Status: active"; then
+        echo "✓ UFW is already enabled"
+    else
+        echo "  Note: UFW rules configured but not enabled automatically"
+        echo "  To enable UFW, run: sudo ufw enable"
+        echo "  WARNING: Make sure SSH access is allowed before enabling UFW!"
+    fi
 elif command_exists iptables; then
-    echo "Configuring iptables rules..."
-    iptables -A INPUT -p udp --dport 5060 -j ACCEPT 2>/dev/null || true
-    iptables -A INPUT -p tcp --dport 5060 -j ACCEPT 2>/dev/null || true
-    iptables -A INPUT -p udp --dport 10000:20000 -j ACCEPT 2>/dev/null || true
+    echo "Configuring iptables rules for SIP and RTP..."
+    
+    if iptables -C INPUT -p udp --dport 5060 -j ACCEPT 2>/dev/null || \
+       iptables -A INPUT -p udp --dport 5060 -j ACCEPT 2>/dev/null; then
+        echo "  ✓ SIP UDP rule added"
+    fi
+    
+    if iptables -C INPUT -p tcp --dport 5060 -j ACCEPT 2>/dev/null || \
+       iptables -A INPUT -p tcp --dport 5060 -j ACCEPT 2>/dev/null; then
+        echo "  ✓ SIP TCP rule added"
+    fi
+    
+    if iptables -C INPUT -p udp --dport 10000:20000 -j ACCEPT 2>/dev/null || \
+       iptables -A INPUT -p udp --dport 10000:20000 -j ACCEPT 2>/dev/null; then
+        echo "  ✓ RTP range rule added"
+    fi
+    
     # Save rules if netfilter-persistent is available
     if command_exists netfilter-persistent; then
-        netfilter-persistent save 2>/dev/null || true
+        if netfilter-persistent save 2>/dev/null; then
+            echo "✓ iptables rules saved"
+        else
+            warn "Failed to save iptables rules. They may not persist after reboot."
+        fi
+    else
+        warn "netfilter-persistent not found. iptables rules may not persist after reboot."
     fi
+else
+    warn "No firewall management tool detected (ufw or iptables)."
+    echo "  You may need to manually configure firewall rules for:"
+    echo "  - SIP: ports 5060 (TCP/UDP)"
+    echo "  - RTP: ports 10000-20000 (UDP)"
 fi
 
 # Run initial check
 echo ""
-echo "Running initial checks..."
-cd "$INSTALL_DIR"
-echo "=== SIP ALG Check ==="
-python3 sip_alg_checker.py --check-alg
+echo "=== Running Initial Checks ==="
+cd "$INSTALL_DIR" || error_exit "Cannot access installation directory"
 
 echo ""
-echo "=== Network Quality Check (short) ==="
-python3 sip_alg_checker.py --monitor "$WAN_IP" --duration 30 --output "$LOG_DIR/initial-check.json"
+echo "1. SIP ALG Check:"
+if python3 sip_alg_checker.py --check-alg 2>&1; then
+    echo "✓ SIP ALG check completed"
+else
+    warn "SIP ALG check encountered errors. Check the output above for details."
+fi
+
+echo ""
+echo "2. Network Quality Check (30 second sample):"
+if python3 sip_alg_checker.py --monitor "$WAN_IP" --duration 30 --output "$LOG_DIR/initial-check.json" 2>&1; then
+    echo "✓ Network quality check completed"
+    echo "  Results saved to: $LOG_DIR/initial-check.json"
+else
+    warn "Network quality check failed. This may be normal if the target host is not reachable."
+fi
 
 # Verify ports
 echo ""
 echo "=== Port Verification ==="
-echo "SIP Port 5060:"
-netstat -tulpn | grep :5060 || ss -tulpn | grep :5060 || echo "Port 5060 not found listening"
+echo ""
+echo "Checking SIP Port 5060:"
+if netstat -tulpn 2>/dev/null | grep -q ":5060 " || ss -tulpn 2>/dev/null | grep -q ":5060 "; then
+    echo "✓ Port 5060 is listening"
+    netstat -tulpn 2>/dev/null | grep ":5060 " || ss -tulpn 2>/dev/null | grep ":5060 "
+    
+    if [ "$PORT_5060_IN_USE" = true ]; then
+        echo "  (Port is bound by Asterisk as expected)"
+    fi
+else
+    if [ "$ASTERISK_RUNNING" = true ]; then
+        warn "Asterisk is running but port 5060 is not listening!"
+        echo "  This may indicate a configuration problem. Check Asterisk's SIP/PJSIP configuration."
+    else
+        echo "  Port 5060 is not listening (normal if Asterisk is not running)"
+    fi
+fi
 
-echo "RTP Ports (sample):"
-netstat -tulpn | grep -E ":(1[0-9]{4}|20000)" || ss -tulpn | grep -E ":(1[0-9]{4}|20000)" || echo "No RTP ports found listening"
+echo ""
+echo "Checking RTP Ports (sample):"
+if netstat -tulpn 2>/dev/null | grep -qE ":(1[0-9]{4}|20000)" || ss -tulpn 2>/dev/null | grep -qE ":(1[0-9]{4}|20000)"; then
+    echo "✓ Some RTP ports are listening"
+    netstat -tulpn 2>/dev/null | grep -E ":(1[0-9]{4}|20000)" | head -5 || \
+    ss -tulpn 2>/dev/null | grep -E ":(1[0-9]{4}|20000)" | head -5
+else
+    echo "  No RTP ports currently listening (normal when no active calls)"
+fi
 
 # Create a simple status dashboard (optional)
+echo ""
 DASHBOARD_DIR="/var/www/html/sip-status"
 if [ -d "/var/www/html" ]; then
-    mkdir -p "$DASHBOARD_DIR"
-    cat > "$DASHBOARD_DIR/index.php" << EOFDASH
+    echo "Creating web status dashboard..."
+    if mkdir -p "$DASHBOARD_DIR" 2>/dev/null; then
+        cat > "$DASHBOARD_DIR/index.php" << EOFDASH
 <?php
 \\$log_dir = '$LOG_DIR';
 \\$wan_ip = '$WAN_IP';
@@ -282,35 +513,86 @@ if (isset(\\$_GET['refresh'])) {
 }
 ?>
 EOFDASH
-    echo "Status dashboard created at: http://$WAN_IP/sip-status/"
+        echo "✓ Status dashboard created at: http://$WAN_IP/sip-status/"
+    else
+        warn "Failed to create dashboard directory. Check web server permissions."
+    fi
 else
-    echo "Web server not detected. Skipping dashboard creation."
+    echo "Web server directory not found (/var/www/html)."
+    echo "  Skipping dashboard creation. Install Apache/Nginx if you want the web dashboard."
 fi
 
 # Final instructions
 echo ""
-echo "=== Setup Complete ==="
-echo "• SIP ALG Checker installed: $INSTALL_DIR"
-echo "• Logs directory: $LOG_DIR"
-echo "• Check script: $CHECK_SCRIPT"
-echo "• Cron job: Every 6 hours"
-echo "• Initial check completed"
-if [ -d "/var/lib/asterisk/agi-bin" ]; then
-    echo "• AGI script: $AGI_SCRIPT"
+echo "════════════════════════════════════════════════════════════════"
+echo "                    ✓ Setup Complete!"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+echo "📁 Installation Summary:"
+echo "   • SIP ALG Checker: $INSTALL_DIR"
+echo "   • Logs directory: $LOG_DIR"
+echo "   • Check script: $CHECK_SCRIPT"
+echo "   • Cron job: Every 6 hours (0 */6 * * *)"
+if [ -f "$AGI_SCRIPT" ]; then
+    echo "   • AGI script: $AGI_SCRIPT (for Asterisk integration)"
 fi
 echo ""
-echo "Next steps:"
-echo "1. Review Asterisk configuration files (see ASTERISK_SETUP.md)"
-echo "2. Test from client: python3 $INSTALL_DIR/sip_alg_checker.py --monitor $WAN_IP"
-echo "3. Check logs: ls -la $LOG_DIR"
-echo "4. View status: Browse to http://$WAN_IP/sip-status/ (if web server enabled)"
+
+if [ "$ASTERISK_RUNNING" = true ]; then
+    echo "✓ Asterisk Status: Running"
+    if [ "$PORT_5060_IN_USE" = true ]; then
+        echo "✓ Port 5060: Bound and ready"
+    else
+        echo "⚠ Port 5060: Not bound (check Asterisk configuration)"
+    fi
+elif command_exists asterisk; then
+    echo "  Asterisk Status: Installed but not running"
+    echo "  To start Asterisk: systemctl start asterisk"
+else
+    echo "  Asterisk: Not installed (limited integration features)"
+fi
+
 echo ""
-echo "Manual checks:"
-echo "• Run full check: $CHECK_SCRIPT"
-echo "• Quick ALG check: cd $INSTALL_DIR && python3 sip_alg_checker.py --check-alg"
-echo "• Monitor quality: cd $INSTALL_DIR && python3 sip_alg_checker.py --monitor $WAN_IP --duration 300"
+echo "📋 Next Steps:"
 echo ""
-echo "Troubleshooting:"
-echo "• Check cron: crontab -l"
-echo "• View logs: tail -f $LOG_DIR/*.log"
-echo "• Asterisk logs: tail -f /var/log/asterisk/full"
+echo "1. Configure Asterisk (if installed):"
+echo "   • Review: cat $INSTALL_DIR/ASTERISK_SETUP.md"
+echo "   • Update external IP in /etc/asterisk/pjsip.conf or sip.conf"
+echo "   • Set external_media_address=$WAN_IP"
+echo "   • Reload: asterisk -rx 'core reload'"
+echo ""
+echo "2. Test from a remote client:"
+echo "   python3 $INSTALL_DIR/sip_alg_checker.py --monitor $WAN_IP --duration 60"
+echo ""
+echo "3. Review logs:"
+echo "   ls -la $LOG_DIR"
+echo "   tail -f $LOG_DIR/monitor.log"
+echo ""
+if [ -d "/var/www/html/sip-status" ]; then
+echo "4. View web dashboard:"
+echo "   http://$WAN_IP/sip-status/"
+echo ""
+fi
+
+echo "🔧 Manual Commands:"
+echo "   • Run check now:    $CHECK_SCRIPT"
+echo "   • Quick ALG check:  cd $INSTALL_DIR && python3 sip_alg_checker.py --check-alg"
+echo "   • Monitor quality:  cd $INSTALL_DIR && python3 sip_alg_checker.py --monitor $WAN_IP --duration 300"
+echo "   • View cron jobs:   crontab -l"
+echo ""
+echo "📚 Documentation:"
+echo "   • Full guide:       $INSTALL_DIR/ASTERISK_SETUP.md"
+echo "   • Security:         $INSTALL_DIR/SECURITY.md"
+echo "   • Quick start:      $INSTALL_DIR/QUICK_START.md"
+echo ""
+echo "❓ Troubleshooting:"
+echo "   • View logs:        tail -f $LOG_DIR/*.log"
+if command_exists asterisk; then
+echo "   • Asterisk logs:    tail -f /var/log/asterisk/full"
+echo "   • Check Asterisk:   asterisk -rvvv"
+fi
+echo "   • Port check:       netstat -tulpn | grep 5060"
+echo "   • Firewall check:   sudo ufw status verbose"
+echo ""
+echo "════════════════════════════════════════════════════════════════"
+echo ""
