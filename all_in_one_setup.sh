@@ -139,7 +139,7 @@ fi
 # Install Python dependencies
 echo ""
 echo "Installing Python dependencies..."
-pip3 install --upgrade --break-system-packages pip
+# Note: Skipping pip upgrade as it can cause issues with externally-managed environments
 pip3 install --break-system-packages ping3>=4.0.0
 
 # Clone or update repository
