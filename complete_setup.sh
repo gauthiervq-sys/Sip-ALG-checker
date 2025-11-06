@@ -417,6 +417,44 @@ else
     echo "Skipping web dashboard creation"
 fi
 
+# Step 9: Deploy client-side SIP ALG test page
+echo ""
+echo "════════════════════════════════════════════════════════════"
+echo "Step 9: Deploy client-side SIP ALG test page"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+read -p "Create client test page for end-users? (y/n): " -n 1 -r
+echo ""
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [ -d "/var/www/html" ]; then
+        echo "Deploying client test page..."
+        cp "$REPO_DIR/sip-test.html" /var/www/html/sip-test.html
+        chmod 644 /var/www/html/sip-test.html
+        echo "✓ Client test page deployed at: http://$WAN_IP/sip-test.html"
+        echo ""
+        echo "Share this URL with your clients to test for SIP ALG:"
+        echo "  → http://$WAN_IP/sip-test.html"
+        echo ""
+        echo "Features:"
+        echo "  • Easy-to-use GUI for non-technical users"
+        echo "  • Automated connectivity tests"
+        echo "  • Clear results and recommendations"
+        echo "  • Download link for advanced Python script"
+    else
+        echo "✗ Web server directory not found at /var/www/html"
+        echo "  Install a web server first (e.g., apache2 or nginx)"
+        echo ""
+        echo "You can still use the test page by opening sip-test.html"
+        echo "from the repository: $REPO_DIR/sip-test.html"
+    fi
+else
+    echo "Skipping client test page deployment"
+    echo ""
+    echo "Note: You can manually deploy it later by copying:"
+    echo "  cp $REPO_DIR/sip-test.html /var/www/html/"
+fi
+
 # Final summary
 echo ""
 echo "════════════════════════════════════════════════════════════"
@@ -461,7 +499,14 @@ echo ""
 
 if [ -d "/var/www/html/sip-status" ]; then
     echo "🌐 Web Dashboard:"
-    echo "   • URL: http://$WAN_IP/sip-status/"
+    echo "   • Server Status: http://$WAN_IP/sip-status/"
+    echo ""
+fi
+
+if [ -f "/var/www/html/sip-test.html" ]; then
+    echo "👥 Client Test Page:"
+    echo "   • URL: http://$WAN_IP/sip-test.html"
+    echo "   • Share this with clients to test for SIP ALG"
     echo ""
 fi
 
