@@ -52,8 +52,21 @@ apt-get install -y \
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
-pip3 install --upgrade pip
-pip3 install ping3>=4.0.0
+
+# Function to install pip packages (handles externally-managed-environment)
+pip_install() {
+    # Check if we're in a virtual environment
+    if [ -n "$VIRTUAL_ENV" ] || python3 -c "import sys; exit(0 if sys.prefix != sys.base_prefix else 1)" 2>/dev/null; then
+        echo "Virtual environment detected, using pip without additional flags..."
+        pip3 install "$@"
+    else
+        echo "System-wide installation, using --break-system-packages flag..."
+        pip3 install --break-system-packages "$@"
+    fi
+}
+
+pip_install --upgrade pip
+pip_install ping3>=4.0.0
 
 # Clone or update repository
 if [ -d "$INSTALL_DIR" ]; then
@@ -68,7 +81,7 @@ fi
 
 # Install Python requirements
 if [ -f "requirements.txt" ]; then
-    pip3 install -r requirements.txt
+    pip_install -r requirements.txt
 fi
 
 # Make main script executable
