@@ -574,12 +574,23 @@ if (isset(\$_GET['refresh'])) {
 ?>
 EOFDASH
         echo "✓ Status dashboard created at: http://$WAN_IP/sip-status/"
+        
+        # Deploy client test page
+        echo "Deploying client-side SIP ALG test page..."
+        if [ -f "$INSTALL_DIR/sip-test.html" ]; then
+            cp "$INSTALL_DIR/sip-test.html" /var/www/html/sip-test.html
+            chmod 644 /var/www/html/sip-test.html
+            echo "✓ Client test page deployed at: http://$WAN_IP/sip-test.html"
+        else
+            warn "sip-test.html not found in repository"
+        fi
     else
         warn "Failed to create dashboard directory. Check web server permissions."
     fi
 else
     echo "Web server directory not found (/var/www/html)."
     echo "  Skipping dashboard creation. Install Apache/Nginx if you want the web dashboard."
+    echo "  You can still use the test page by opening: $INSTALL_DIR/sip-test.html"
 fi
 
 # Final instructions
@@ -630,7 +641,13 @@ echo "   tail -f $LOG_DIR/monitor.log"
 echo ""
 if [ -d "/var/www/html/sip-status" ]; then
 echo "4. View web dashboard:"
-echo "   http://$WAN_IP/sip-status/"
+echo "   • Server status: http://$WAN_IP/sip-status/"
+echo ""
+fi
+if [ -f "/var/www/html/sip-test.html" ]; then
+echo "5. Share client test page:"
+echo "   • Client test: http://$WAN_IP/sip-test.html"
+echo "   • Easy-to-use GUI for clients to test SIP ALG"
 echo ""
 fi
 

@@ -5,6 +5,7 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
 ## Features
 
 - **SIP ALG Detection**: Automatically detects if SIP ALG is interfering with your VoIP traffic
+- **Client-Side Test Tool**: Web-based GUI for non-technical users to test SIP ALG from their browser
 - **Network Quality Monitoring**: Real-time monitoring of critical VoIP parameters:
   - **Jitter**: Measures variance in packet arrival times
   - **Packet Loss**: Tracks percentage of lost packets
@@ -25,6 +26,55 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
 - **🚀 Quick Start**: See [QUICK_START.md](QUICK_START.md) for getting started in 5 minutes
 - **✅ Setup Completion**: See [COMPLETE_SETUP_README.md](COMPLETE_SETUP_README.md) for completing partial setup
 - **🔧 Setup Scripts Guide**: See [SETUP_SCRIPTS_GUIDE.md](SETUP_SCRIPTS_GUIDE.md) for choosing the right setup script
+
+## 🌐 Client-Side Test Tool
+
+We provide an easy-to-use web-based tool for your clients to test if SIP ALG is active on their network:
+
+### For End Users (Your Clients)
+
+Simply share this URL with your clients: `http://YOUR_SERVER_IP/sip-test.html`
+
+**Features:**
+- ✅ Beautiful, user-friendly interface
+- ✅ No installation required - works in any web browser
+- ✅ Automated connectivity tests to SIP/RTP ports
+- ✅ Clear results with actionable recommendations
+- ✅ Mobile-friendly responsive design
+- ✅ Includes download link for advanced Python script
+
+**Perfect for non-technical users who need to:**
+- Check if their router has SIP ALG enabled
+- Diagnose VoIP connection issues
+- Test connectivity to your VoIP server
+
+### For Server Administrators
+
+The client test page is automatically deployed when you run the setup scripts:
+
+```bash
+# Using complete setup
+sudo bash complete_setup.sh
+
+# Using all-in-one setup
+sudo bash all_in_one_setup.sh
+```
+
+Both scripts will offer to deploy the client test page to `/var/www/html/sip-test.html`.
+
+**Manual deployment:**
+```bash
+# Copy the test page to your web server
+sudo cp sip-test.html /var/www/html/
+
+# Verify it's accessible
+curl http://YOUR_SERVER_IP/sip-test.html
+```
+
+The test page (`sip-test.html`) is a standalone HTML file that can also be:
+- Sent directly to clients to open locally
+- Hosted on any web server
+- Customized for your branding (edit the HTML file)
 
 ## Installation
 
