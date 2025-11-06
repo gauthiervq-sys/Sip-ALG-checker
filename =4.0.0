@@ -1,0 +1,8 @@
+Collecting ping3
+  Downloading ping3-5.1.5-py3-none-any.whl.metadata
+     - 12.8 kB 82.6 MB/s 0:00:00
+Downloading ping3-5.1.5-py3-none-any.whl
+   - 15.9 kB 41.3 MB/s 0:00:00
+Installing collected packages: ping3
+Successfully installed ping3-5.1.5
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
