@@ -55,6 +55,32 @@ pip install ping3
 sudo setcap cap_net_raw+ep $(which python3)
 ```
 
+### Automated Setup for Asterisk Servers
+
+For a complete automated installation on Asterisk servers, use the all-in-one setup script:
+
+```bash
+# Download and run the setup script
+curl -o /tmp/all_in_one_setup.sh https://raw.githubusercontent.com/gauthiervq-sys/Sip-ALG-checker/main/all_in_one_setup.sh
+sudo bash /tmp/all_in_one_setup.sh
+```
+
+This script will:
+- Install all required dependencies
+- Clone or update the repository
+- Set up automated monitoring (cron job every 6 hours)
+- Create Asterisk AGI integration scripts
+- Configure firewall rules for SIP and RTP
+- Detect and handle existing Asterisk installations
+- Provide comprehensive error messages and guidance
+
+**Features:**
+- ✅ Detects if Asterisk is installed and running
+- ✅ Checks for port 5060 binding conflicts
+- ✅ Safe firewall configuration (no auto-enable to prevent lockout)
+- ✅ Clear error messages with troubleshooting steps
+- ✅ Works with or without existing Asterisk installation
+
 ## ⚠️ Security Warning for Asterisk Servers
 
 If you're running this on an Asterisk server, **protect your server from toll fraud and unauthorized access**:
