@@ -52,8 +52,8 @@ apt-get install -y \
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
-pip3 install --upgrade pip
-pip3 install ping3>=4.0.0
+pip3 install --upgrade --break-system-packages pip
+pip3 install --break-system-packages ping3>=4.0.0
 
 # Clone or update repository
 if [ -d "$INSTALL_DIR" ]; then
@@ -68,7 +68,7 @@ fi
 
 # Install Python requirements
 if [ -f "requirements.txt" ]; then
-    pip3 install -r requirements.txt
+    pip3 install --break-system-packages -r requirements.txt
 fi
 
 # Make main script executable
@@ -153,21 +153,18 @@ try:
     results = checker.check_sip_alg_via_nat()
     
     # Set Asterisk channel variable with result
-    sys.stdout.write(f'SET VARIABLE SIPALG_STATUS "{results["sip_alg_detected"]}"
-')
+    sys.stdout.write(f'SET VARIABLE SIPALG_STATUS "{results["sip_alg_detected"]}"\n')
     sys.stdout.flush()
     sys.stdin.readline()  # Read response
     
     # Log to Asterisk
     if results['sip_alg_detected'] == 'LIKELY':
-        sys.stdout.write('VERBOSE "WARNING: SIP ALG likely interfering!" 1
-')
+        sys.stdout.write('VERBOSE "WARNING: SIP ALG likely interfering!" 1\n')
         sys.stdout.flush()
         sys.stdin.readline()
     
 except Exception as e:
-    sys.stdout.write(f'VERBOSE "SIP ALG Check Error: {str(e)}" 1
-')
+    sys.stdout.write(f'VERBOSE "SIP ALG Check Error: {str(e)}" 1\n')
     sys.stdout.flush()
 
 sys.exit(0)
@@ -228,19 +225,19 @@ if [ -d "/var/www/html" ]; then
     mkdir -p "$DASHBOARD_DIR"
     cat > "$DASHBOARD_DIR/index.php" << EOFDASH
 <?php
-\\$log_dir = '$LOG_DIR';
-\\$wan_ip = '$WAN_IP';
-\\$latest = shell_exec("ls -t \\$log_dir/quality-*.json 2>/dev/null | head -1");
-if (\\$latest) {
-    \\$data = json_decode(file_get_contents(trim(\\$latest)), true);
+\$log_dir = '$LOG_DIR';
+\$wan_ip = '$WAN_IP';
+\$latest = shell_exec("ls -t \$log_dir/quality-*.json 2>/dev/null | head -1");
+if (\$latest) {
+    \$data = json_decode(file_get_contents(trim(\$latest)), true);
 } else {
-    \\$data = ['summary' => ['packet_loss_percent' => 0, 'jitter_ms' => 0, 'avg_latency_ms' => 0, 'timestamp' => 'No data yet']];
+    \$data = ['summary' => ['packet_loss_percent' => 0, 'jitter_ms' => 0, 'avg_latency_ms' => 0, 'timestamp' => 'No data yet']];
 }
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SIP ALG Status - <?php echo \\$wan_ip; ?></title>
+    <title>SIP ALG Status - <?php echo \$wan_ip; ?></title>
     <meta http-equiv="refresh" content="300">
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -252,31 +249,31 @@ if (\\$latest) {
 </head>
 <body>
     <h1>SIP Quality Monitor</h1>
-    <h2>Server: <?php echo \\$wan_ip; ?></h2>
+    <h2>Server: <?php echo \$wan_ip; ?></h2>
     <div class="metric">
         <strong>Packet Loss:</strong> 
-        <span class="<?php echo \\$data['summary']['packet_loss_percent'] > 1 ? 'poor' : 'good'; ?>">
-            <?php echo \\$data['summary']['packet_loss_percent']; ?>%
+        <span class="<?php echo \$data['summary']['packet_loss_percent'] > 1 ? 'poor' : 'good'; ?>">
+            <?php echo \$data['summary']['packet_loss_percent']; ?>%
         </span>
     </div>
     <div class="metric">
         <strong>Jitter:</strong> 
-        <span class="<?php echo \\$data['summary']['jitter_ms'] > 30 ? 'poor' : (\\$data['summary']['jitter_ms'] > 20 ? 'fair' : 'good'); ?>">
-            <?php echo \\$data['summary']['jitter_ms']; ?>ms
+        <span class="<?php echo \$data['summary']['jitter_ms'] > 30 ? 'poor' : (\$data['summary']['jitter_ms'] > 20 ? 'fair' : 'good'); ?>">
+            <?php echo \$data['summary']['jitter_ms']; ?>ms
         </span>
     </div>
     <div class="metric">
         <strong>Avg Latency:</strong> 
-        <span class="<?php echo \\$data['summary']['avg_latency_ms'] > 150 ? 'poor' : 'good'; ?>">
-            <?php echo \\$data['summary']['avg_latency_ms']; ?>ms
+        <span class="<?php echo \$data['summary']['avg_latency_ms'] > 150 ? 'poor' : 'good'; ?>">
+            <?php echo \$data['summary']['avg_latency_ms']; ?>ms
         </span>
     </div>
-    <p><em>Last updated: <?php echo \\$data['summary']['timestamp']; ?></em></p>
+    <p><em>Last updated: <?php echo \$data['summary']['timestamp']; ?></em></p>
     <p><a href="?refresh=1">Refresh Now</a></p>
 </body>
 </html>
 <?php
-if (isset(\\$_GET['refresh'])) {
+if (isset(\$_GET['refresh'])) {
     shell_exec('$CHECK_SCRIPT');
     header("Location: index.php");
 }
