@@ -95,10 +95,13 @@ python3 sip_alg_checker.py --monitor 193.105.36.4 --duration 300 \
 PACKET_LOSS=$(jq -r '.summary.packet_loss_percent // 0' "$LOG_DIR/quality-$DATE.json" 2>/dev/null || echo "0")
 JITTER=$(jq -r '.summary.jitter_ms // 0' "$LOG_DIR/quality-$DATE.json" 2>/dev/null || echo "0")
 
-if (( $(echo "$PACKET_LOSS > 1.0" | bc -l) )) || (( $(echo "$JITTER > 30" | bc -l) )); then
-    echo "WARNING: Poor network quality detected!" | \
-      mail -s "SIP Quality Alert - $(hostname)" root 2>/dev/null || \
-      echo "Mail not configured, but alert triggered: Packet Loss $PACKET_LOSS%, Jitter ${JITTER}ms"
+# Use bc for floating point comparison if available, otherwise skip
+if command -v bc >/dev/null 2>&1; then
+    if (( $(echo "$PACKET_LOSS > 1.0" | bc -l 2>/dev/null || echo 0) )) || (( $(echo "$JITTER > 30" | bc -l 2>/dev/null || echo 0) )); then
+        echo "WARNING: Poor network quality detected!" | \
+          mail -s "SIP Quality Alert - $(hostname)" root 2>/dev/null || \
+          echo "Mail not configured, but alert triggered: Packet Loss $PACKET_LOSS%, Jitter ${JITTER}ms"
+    fi
 fi
 
 # Keep only last 30 days of logs
@@ -116,11 +119,12 @@ echo ""
 echo "Step 4: Adding cron job for periodic monitoring..."
 CRON_JOB="0 */6 * * * $CHECK_SCRIPT >/dev/null 2>&1"
 
-# Check if cron job already exists
-if crontab -l 2>/dev/null | grep -q "$CHECK_SCRIPT"; then
+# Check if exact cron job already exists
+if crontab -l 2>/dev/null | grep -qF "$CRON_JOB"; then
     echo "  Cron job already exists"
 else
-    (crontab -l 2>/dev/null | grep -v "$CHECK_SCRIPT" || true; echo "$CRON_JOB") | crontab -
+    # Remove any old versions of this cron job and add the new one
+    (crontab -l 2>/dev/null | grep -vF "$CHECK_SCRIPT" || true; echo "$CRON_JOB") | crontab -
     echo "✓ Cron job added (runs every 6 hours)"
 fi
 
@@ -269,11 +273,16 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         mkdir -p "$DASHBOARD_DIR"
         cat > "$DASHBOARD_DIR/index.php" << EOFDASH
 <?php
+// Configuration - hardcoded for security
 \$log_dir = '$LOG_DIR';
 \$wan_ip = '$WAN_IP';
-\$latest = shell_exec("ls -t \$log_dir/quality-*.json 2>/dev/null | head -1");
-if (\$latest) {
-    \$data = json_decode(file_get_contents(trim(\$latest)), true);
+
+// Safely get latest quality file
+\$files = glob(\$log_dir . '/quality-*.json');
+if (\$files) {
+    usort(\$files, function(\$a, \$b) { return filemtime(\$b) - filemtime(\$a); });
+    \$latest = \$files[0];
+    \$data = json_decode(file_get_contents(\$latest), true);
 } else {
     \$data = ['summary' => ['packet_loss_percent' => 0, 'jitter_ms' => 0, 'avg_latency_ms' => 0, 'timestamp' => 'No data yet']];
 }
@@ -322,16 +331,10 @@ if (\$latest) {
             <em>Last updated: <?php echo \$data['summary']['timestamp']; ?></em>
         </div>
         
-        <a href="?refresh=1" class="button">Force Refresh</a>
+        <p><small><em>Note: Auto-refresh is disabled for security. Run monitoring script manually.</em></small></p>
     </div>
 </body>
 </html>
-<?php
-if (isset(\$_GET['refresh'])) {
-    shell_exec('$CHECK_SCRIPT');
-    header("Location: index.php");
-}
-?>
 EOFDASH
         echo "✓ Web dashboard created at: http://$WAN_IP/sip-status/"
         echo "  Note: Requires PHP and a web server (Apache/Nginx)"

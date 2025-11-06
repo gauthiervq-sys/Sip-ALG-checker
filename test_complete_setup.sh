@@ -54,7 +54,7 @@ echo ""
 echo "Test 5: Checking for critical variables..."
 REQUIRED_VARS=("REPO_DIR" "LOG_DIR" "CHECK_SCRIPT" "AGI_SCRIPT" "WAN_IP")
 for var in "${REQUIRED_VARS[@]}"; do
-    if grep -q "^$var=" "$SCRIPT_PATH"; then
+    if grep -q "^[[:space:]]*$var=" "$SCRIPT_PATH"; then
         echo "✓ $var variable defined"
     else
         echo "✗ $var variable not found"
