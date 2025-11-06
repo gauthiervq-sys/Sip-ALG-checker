@@ -291,21 +291,18 @@ try:
     results = checker.check_sip_alg_via_nat()
     
     # Set Asterisk channel variable with result
-    sys.stdout.write(f'SET VARIABLE SIPALG_STATUS "{results["sip_alg_detected"]}"
-')
+    sys.stdout.write(f'SET VARIABLE SIPALG_STATUS "{results["sip_alg_detected"]}"\n')
     sys.stdout.flush()
     sys.stdin.readline()  # Read response
     
     # Log to Asterisk
     if results['sip_alg_detected'] == 'LIKELY':
-        sys.stdout.write('VERBOSE "WARNING: SIP ALG likely interfering!" 1
-')
+        sys.stdout.write('VERBOSE "WARNING: SIP ALG likely interfering!" 1\n')
         sys.stdout.flush()
         sys.stdin.readline()
     
 except Exception as e:
-    sys.stdout.write(f'VERBOSE "SIP ALG Check Error: {str(e)}" 1
-')
+    sys.stdout.write(f'VERBOSE "SIP ALG Check Error: {str(e)}" 1\n')
     sys.stdout.flush()
 
 sys.exit(0)
