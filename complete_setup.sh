@@ -298,9 +298,9 @@ if (\$alg_files) {
     \$alg_timestamp = date('Y-m-d H:i:s', filemtime(\$alg_log));
     
     // Parse SIP ALG status from log
-    if (preg_match('/SIP ALG Status: (LIKELY|UNLIKELY|POSSIBLE|NO)/', \$alg_content, \$matches)) {
+    if (preg_match('/SIP ALG Status: (LIKELY|UNLIKELY|POSSIBLE)/', \$alg_content, \$matches)) {
         \$alg_status = \$matches[1];
-    } elseif (preg_match('/sip_alg_detected.*?: ["\']?(LIKELY|UNLIKELY|POSSIBLE|NO)["\']?/', \$alg_content, \$matches)) {
+    } elseif (preg_match('/sip_alg_detected.*?: ["\']?(LIKELY|UNLIKELY|POSSIBLE)["\']?/', \$alg_content, \$matches)) {
         \$alg_status = \$matches[1];
     }
 }
