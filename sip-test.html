@@ -363,6 +363,11 @@
                         <strong>Note:</strong> This test checks connectivity to our test server at <code>193.105.36.4</code>.
                         The test is completely safe and only checks if your router is blocking or modifying SIP traffic.
                     </p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <strong>Technical Note:</strong> Due to browser security, this test checks TCP connectivity to SIP/RTP port numbers 
+                        (which normally use UDP for VoIP). While not a perfect test, blocked TCP ports typically indicate firewall 
+                        rules that would also affect UDP traffic on the same ports.
+                    </p>
                 </div>
             </div>
 
@@ -427,16 +432,16 @@
             return new Promise((resolve) => {
                 const startTime = Date.now();
                 
-                // Since WebSocket direct connection to arbitrary ports from browser is restricted,
-                // we'll use a different approach - test via fetch with timeout
-                // This simulates connectivity test
+                // IMPORTANT: Browser security restrictions prevent direct UDP port testing
+                // This test uses HTTP/TCP as a proxy indicator for network accessibility
+                // SIP (5060) and RTP ports (10000-20000) typically use UDP, but we test
+                // TCP connectivity to these port numbers as an indicator of firewall rules
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeout);
                 
-                // Try to establish a connection indicator
-                // Note: Due to browser security, we can't directly test UDP ports
-                // We're simulating a connectivity check
+                let wasAborted = false;
+                
                 fetch(`http://${TEST_SERVER}:${port}`, {
                     method: 'HEAD',
                     mode: 'no-cors',
@@ -449,14 +454,12 @@
                 })
                 .catch((error) => {
                     clearTimeout(timeoutId);
-                    // In no-cors mode, we can't distinguish between success and failure
-                    // So we'll consider it based on timeout
                     const latency = Date.now() - startTime;
-                    if (latency < timeout) {
-                        resolve({ success: true, latency });
-                    } else {
-                        resolve({ success: false, latency, error: error.message });
-                    }
+                    // Check if error was due to timeout/abort
+                    wasAborted = error.name === 'AbortError';
+                    // In no-cors mode, network errors complete quickly
+                    // Timeouts indicate the port might be filtered
+                    resolve({ success: !wasAborted && latency < timeout * 0.8, latency, error: error.message });
                 });
             });
         }
@@ -522,7 +525,7 @@
                 analysis.title = '🚫 SIP ALG Likely Active';
                 analysis.message = `SIP ALG appears to be interfering with your VoIP traffic. The test shows limited connectivity to SIP/RTP ports, which is a strong indicator that your router is blocking or modifying VoIP packets.`;
                 analysis.recommendations = [
-                    '<strong>Disable SIP ALG in your router:</strong> Log into your router (usually at 192.168.1.1 or 192.168.0.1) and look for SIP ALG settings under Advanced → NAT or Firewall → ALG',
+                    '<strong>Disable SIP ALG in your router:</strong> Log into your router (common addresses: 192.168.1.1, 192.168.0.1, 192.168.2.1, 10.0.0.1, or check your network settings) and look for SIP ALG settings under Advanced → NAT or Firewall → ALG',
                     'After disabling SIP ALG, reboot your router',
                     'Run this test again to confirm SIP ALG is disabled',
                     'If you cannot find SIP ALG settings, consult your router\'s manual or contact your ISP',
