@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP ALG Checker - Web Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .results.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .results.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .results.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-top: 15px;
+        }
+
+        .result-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .result-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            margin-bottom: 10px;
+            border-radius: 3px;
+        }
+
+        .result-item strong {
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .status-likely {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-possible {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-unlikely {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .quality-excellent {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .quality-good {
+            color: #5cb85c;
+            font-weight: 600;
+        }
+
+        .quality-fair {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .quality-poor {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 SIP ALG Checker</h1>
+            <p>Web Dashboard for VoIP Diagnostics</p>
+        </div>
+
+        <div class="grid">
+            <!-- SIP ALG Check Card -->
+            <div class="card">
+                <h2>🔍 SIP ALG Check</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Check if SIP ALG (Application Layer Gateway) is interfering with your VoIP traffic.
+                </p>
+                <button class="btn btn-primary" onclick="checkSIPALG()" id="algCheckBtn">
+                    Run SIP ALG Check
+                </button>
+                <div id="algResults" class="results"></div>
+            </div>
+
+            <!-- Network Monitoring Card -->
+            <div class="card">
+                <h2>📊 Network Monitoring</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Monitor network quality parameters including jitter, packet loss, and latency.
+                </p>
+                <form onsubmit="return monitorNetwork(event)">
+                    <div class="form-group">
+                        <label for="targetHost">Target IP/Host:</label>
+                        <input type="text" id="targetHost" name="targetHost" 
+                               placeholder="e.g., 8.8.8.8 or google.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="duration">Duration (seconds):</label>
+                        <input type="number" id="duration" name="duration" 
+                               min="5" max="300" value="30" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="monitorBtn">
+                        Start Monitoring
+                    </button>
+                </form>
+                <div id="monitorResults" class="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkSIPALG() {
+            const btn = document.getElementById('algCheckBtn');
+            const resultsDiv = document.getElementById('algResults');
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Checking...';
+            resultsDiv.style.display = 'none';
+            
+            fetch('/api/check_alg', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayALGResults(data.data);
+                } else {
+                    showError(resultsDiv, data.error || 'Unknown error occurred');
+                }
+            })
+            .catch(error => {
+                showError(resultsDiv, 'Network error: ' + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Run SIP ALG Check';
+            });
+        }
+
+        function displayALGResults(results) {
+            const resultsDiv = document.getElementById('algResults');
+            
+            const statusClass = results.sip_alg_detected.toLowerCase();
+            const statusBadge = `<span class="status-badge status-${statusClass}">${results.sip_alg_detected}</span>`;
+            
+            let html = `
+                <div class="result-section">
+                    <h3>Detection Results</h3>
+                    <div class="result-item">
+                        <strong>Local IP:</strong> ${results.local_ip}
+                    </div>
+                    <div class="result-item">
+                        <strong>SIP ALG Status:</strong> ${statusBadge}
+                    </div>
+                    <div class="result-item">
+                        <strong>Timestamp:</strong> ${new Date(results.timestamp).toLocaleString()}
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Recommendation</h3>
+                    <div class="result-item">
+                        ${results.recommendation}
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Detailed Checks</h3>
+            `;
+            
+            results.checks_performed.forEach(check => {
+                html += `<div class="result-item">`;
+                html += `<strong>${check.name}:</strong><br>`;
+                html += `${check.description}<br>`;
+                if (check.status) {
+                    html += `Status: ${check.status}`;
+                }
+                if (check.open_ports !== undefined) {
+                    html += `Open Ports: ${check.open_ports}/5`;
+                }
+                if (check.behavior) {
+                    html += `Behavior: ${check.behavior}`;
+                }
+                html += `</div>`;
+            });
+            
+            html += '</div>';
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.className = 'results info';
+            resultsDiv.style.display = 'block';
+        }
+
+        function monitorNetwork(event) {
+            event.preventDefault();
+            
+            const btn = document.getElementById('monitorBtn');
+            const resultsDiv = document.getElementById('monitorResults');
+            const host = document.getElementById('targetHost').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Monitoring...';
+            resultsDiv.style.display = 'none';
+            
+            fetch('/api/monitor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    host: host,
+                    duration: duration,
+                    count: duration
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayMonitorResults(data.data);
+                } else {
+                    showError(resultsDiv, data.error || 'Unknown error occurred');
+                }
+            })
+            .catch(error => {
+                showError(resultsDiv, 'Network error: ' + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Start Monitoring';
+            });
+            
+            return false;
+        }
+
+        function displayMonitorResults(data) {
+            const resultsDiv = document.getElementById('monitorResults');
+            const stats = data.summary;
+            
+            // Determine quality class
+            let quality = 'excellent';
+            if (stats.packet_loss_percent > 1 || stats.jitter_ms > 30) {
+                quality = 'poor';
+            } else if (stats.packet_loss_percent > 0.5 || stats.jitter_ms > 20) {
+                quality = 'fair';
+            } else if (stats.jitter_ms > 10) {
+                quality = 'good';
+            }
+            
+            const qualityText = quality.toUpperCase();
+            
+            let html = `
+                <div class="result-section">
+                    <h3>Monitoring Summary</h3>
+                    <div class="result-item">
+                        <strong>Target:</strong> ${stats.target}
+                    </div>
+                    <div class="result-item">
+                        <strong>Packets Sent:</strong> ${stats.packets_sent}
+                    </div>
+                    <div class="result-item">
+                        <strong>Packets Received:</strong> ${stats.packets_received}
+                    </div>
+                    <div class="result-item">
+                        <strong>Packet Loss:</strong> ${stats.packet_loss_percent}%
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Latency Metrics</h3>
+                    <div class="result-item">
+                        <strong>Average Latency:</strong> ${stats.avg_latency_ms} ms
+                    </div>
+                    <div class="result-item">
+                        <strong>Min Latency:</strong> ${stats.min_latency_ms} ms
+                    </div>
+                    <div class="result-item">
+                        <strong>Max Latency:</strong> ${stats.max_latency_ms} ms
+                    </div>
+                    <div class="result-item">
+                        <strong>Jitter:</strong> ${stats.jitter_ms} ms
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Quality Assessment</h3>
+                    <div class="result-item">
+                        <strong>Overall Quality:</strong> 
+                        <span class="quality-${quality}">${qualityText}</span>
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.className = 'results success';
+            resultsDiv.style.display = 'block';
+        }
+
+        function showError(resultsDiv, message) {
+            resultsDiv.innerHTML = `<strong>Error:</strong> ${message}`;
+            resultsDiv.className = 'results error';
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
