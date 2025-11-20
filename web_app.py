@@ -18,6 +18,7 @@ monitor_results = {
     'stats': None,
     'error': None
 }
+monitor_lock = threading.Lock()
 
 
 def run_monitor(target_host, duration, interval):
@@ -25,25 +26,36 @@ def run_monitor(target_host, duration, interval):
     global monitor_results
     
     try:
-        monitor_results['running'] = True
-        monitor_results['error'] = None
+        with monitor_lock:
+            monitor_results['running'] = True
+            monitor_results['error'] = None
         
         monitor = NetworkMonitor(target_host)
         start_time = time.time()
         
-        while (time.time() - start_time) < duration and monitor_results['running']:
+        while (time.time() - start_time) < duration:
+            with monitor_lock:
+                if not monitor_results['running']:
+                    break
+            
             monitor.measure_once()
             stats = monitor.get_stats()
-            monitor_results['stats'] = stats
+            
+            with monitor_lock:
+                monitor_results['stats'] = stats
+            
             time.sleep(interval)
         
         # Final update
-        monitor_results['stats'] = monitor.get_stats()
+        with monitor_lock:
+            monitor_results['stats'] = monitor.get_stats()
         
     except Exception as e:
-        monitor_results['error'] = str(e)
+        with monitor_lock:
+            monitor_results['error'] = str(e)
     finally:
-        monitor_results['running'] = False
+        with monitor_lock:
+            monitor_results['running'] = False
 
 
 @app.route('/')
@@ -85,18 +97,19 @@ def start_monitor():
         interval = int(data.get('interval', 1))
         
         # Check if monitoring is already running
-        if monitor_results['running']:
-            return jsonify({
-                'success': False,
-                'error': 'Monitoring is already running'
-            }), 400
-        
-        # Reset results
-        monitor_results = {
-            'running': True,
-            'stats': None,
-            'error': None
-        }
+        with monitor_lock:
+            if monitor_results['running']:
+                return jsonify({
+                    'success': False,
+                    'error': 'Monitoring is already running'
+                }), 400
+            
+            # Reset results
+            monitor_results = {
+                'running': True,
+                'stats': None,
+                'error': None
+            }
         
         # Start monitoring in a background thread
         monitor_thread = threading.Thread(
@@ -113,7 +126,8 @@ def start_monitor():
             'interval': interval
         })
     except Exception as e:
-        monitor_results['running'] = False
+        with monitor_lock:
+            monitor_results['running'] = False
         return jsonify({
             'success': False,
             'error': str(e)
@@ -125,11 +139,12 @@ def monitor_status():
     """Get current monitoring status and results"""
     global monitor_results
     
-    return jsonify({
-        'running': monitor_results['running'],
-        'stats': monitor_results['stats'],
-        'error': monitor_results['error']
-    })
+    with monitor_lock:
+        return jsonify({
+            'running': monitor_results['running'],
+            'stats': monitor_results['stats'],
+            'error': monitor_results['error']
+        })
 
 
 @app.route('/api/monitor/stop', methods=['POST'])
@@ -137,13 +152,14 @@ def stop_monitor():
     """Stop the running monitor"""
     global monitor_results
     
-    if not monitor_results['running']:
-        return jsonify({
-            'success': False,
-            'error': 'No monitoring is currently running'
-        }), 400
-    
-    monitor_results['running'] = False
+    with monitor_lock:
+        if not monitor_results['running']:
+            return jsonify({
+                'success': False,
+                'error': 'No monitoring is currently running'
+            }), 400
+        
+        monitor_results['running'] = False
     
     return jsonify({
         'success': True,
