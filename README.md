@@ -43,9 +43,14 @@ cd Sip-ALG-checker
 # Install dependencies
 pip install -r requirements.txt
 
-# Make the script executable (Linux/Mac)
-chmod +x sip_alg_checker.py
+# Make scripts executable (Linux/Mac)
+chmod +x sip_alg_checker.py start_web.sh
+
+# Start the web interface (recommended)
+./start_web.sh
 ```
+
+The web interface will automatically install all dependencies and start the server at `http://localhost:5000`.
 
 ### Optional: Install ping3 for enhanced functionality
 
@@ -103,7 +108,30 @@ This will configure:
 
 ## Usage
 
-### Check for SIP ALG
+### Web Interface (Recommended)
+
+The easiest way to use the SIP ALG Checker is through the web interface:
+
+```bash
+# Start the web interface
+./start_web.sh
+```
+
+The web dashboard will be available at `http://localhost:5000`
+
+**Features:**
+- 🔍 **One-Click SIP ALG Check**: Instantly check for SIP ALG interference
+- 📊 **Network Monitoring**: Monitor jitter, packet loss, and latency
+- 🎨 **Beautiful UI**: Clean, responsive design that works on all devices
+- ⚡ **Real-time Results**: See results immediately in an easy-to-read format
+
+**Note**: Network monitoring requires elevated privileges. If monitoring fails, you can either:
+- Run with sudo: `sudo python3 web_app.py`
+- Use the command-line interface (see below)
+
+### Command Line Interface
+
+#### Check for SIP ALG
 
 Quickly check if SIP ALG is interfering with your VoIP setup:
 
