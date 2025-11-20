@@ -4,6 +4,7 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
 
 ## Features
 
+- **Web Interface**: Modern, user-friendly web interface for easy access (NEW!)
 - **SIP ALG Detection**: Automatically detects if SIP ALG is interfering with your VoIP traffic
 - **Network Quality Monitoring**: Real-time monitoring of critical VoIP parameters:
   - **Jitter**: Measures variance in packet arrival times
@@ -102,6 +103,34 @@ This will configure:
 **See [SECURITY.md](SECURITY.md) for complete security guide.**
 
 ## Usage
+
+### Web Interface (Easy Mode)
+
+The easiest way to use the SIP ALG Checker is through the web interface:
+
+```bash
+# Quick start with the convenience script
+./start_web.sh
+
+# Or manually:
+pip install -r requirements.txt
+python3 web_app.py
+```
+
+Then open your browser to `http://localhost:5000`
+
+**Features:**
+- 🌐 Modern, user-friendly web interface
+- 🔍 One-click SIP ALG detection with detailed results
+- 📊 Network quality monitoring with real-time stats
+- 📱 Responsive design works on desktop and mobile
+- ⚡ No command-line knowledge required
+
+**Note:** Network monitoring requires elevated permissions for ICMP ping. If you encounter permission errors, run with `sudo python3 web_app.py`.
+
+**Security Note:** The web interface runs in debug mode for development/testing. For production use, disable debug mode and use a production WSGI server like Gunicorn.
+
+### Command-Line Interface
 
 ### Check for SIP ALG
 
