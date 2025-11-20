@@ -12,6 +12,7 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
   - **Quality Assessment**: Provides overall quality rating
 - **Long-term Monitoring**: Support for extended monitoring periods with configurable intervals
 - **Easy-to-Use CLI**: Simple command-line interface with clear output
+- **Web Interface**: Modern, responsive web dashboard for easy access without command line
 - **Data Export**: Save monitoring results to JSON for further analysis
 - **Comprehensive Reports**: Detailed analysis and recommendations
 - **Asterisk Integration**: Full support for Asterisk PBX with AGI scripts and automated monitoring
@@ -102,6 +103,35 @@ This will configure:
 **See [SECURITY.md](SECURITY.md) for complete security guide.**
 
 ## Usage
+
+### Web Interface (Easiest Method)
+
+The easiest way to use the SIP ALG Checker is through the web interface:
+
+```bash
+# Start the web server
+./start_web.sh
+
+# Or manually:
+pip3 install -r requirements.txt
+python3 web_app.py
+```
+
+Then open your browser and navigate to `http://localhost:5000`
+
+**Features:**
+- 🎨 Modern, responsive Bootstrap dashboard
+- 🟢 Color-coded SIP ALG status (Green = UNLIKELY, Red = LIKELY)
+- 📊 Interactive network quality testing
+- 🔄 Real-time updates without page reload
+- 📱 Mobile-friendly design
+
+**For debugging:**
+```bash
+FLASK_DEBUG=true python3 web_app.py
+```
+
+### Command Line Interface
 
 ### Check for SIP ALG
 
