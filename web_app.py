@@ -46,7 +46,13 @@ def monitor():
         # Get parameters from request
         data = request.get_json() or {}
         target_host = data.get('target_host', '8.8.8.8')
-        duration = min(int(data.get('duration', 10)), 30)  # Max 30 seconds for web
+        
+        # Validate duration parameter
+        try:
+            duration = int(data.get('duration', 10))
+            duration = min(max(duration, 1), 30)  # Clamp between 1 and 30 seconds
+        except (ValueError, TypeError):
+            duration = 10  # Default to 10 seconds if invalid
         
         # Create monitor
         monitor_obj = NetworkMonitor(target_host=target_host, sample_size=duration)
@@ -68,10 +74,6 @@ def monitor():
         # Get statistics
         stats = monitor_obj.get_stats()
         
-        # Add a note if running without proper permissions
-        if successful_pings == 0 and monitor_obj.packets_sent > 0:
-            stats['note'] = 'Running with limited permissions. Some measurements may use fallback methods.'
-        
         return jsonify({
             'success': True,
             'data': stats
@@ -91,4 +93,7 @@ def monitor():
 if __name__ == '__main__':
     # Run the Flask app
     # In production, use a proper WSGI server like gunicorn
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Debug mode is enabled for development only
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host='127.0.0.1', port=5000, debug=debug_mode)

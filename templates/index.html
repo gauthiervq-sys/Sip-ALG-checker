@@ -257,15 +257,38 @@
                         statusBox.classList.add('status-possible');
                     }
                     
-                    // Update details
-                    const detailsHtml = result.checks_performed.map(check => {
-                        let info = `<strong>${check.name}:</strong> ${check.description}`;
-                        if (check.status) info += ` - <span class="badge ${check.status === 'PASS' ? 'bg-success' : 'bg-danger'}">${check.status}</span>`;
-                        if (check.open_ports !== undefined) info += ` - ${check.open_ports}/5 ports available`;
-                        if (check.behavior) info += ` - ${check.behavior}`;
-                        return `<div class="mb-2">${info}</div>`;
-                    }).join('');
-                    document.getElementById('algDetails').innerHTML = detailsHtml;
+                    // Update details - using textContent to prevent XSS
+                    const detailsContainer = document.getElementById('algDetails');
+                    detailsContainer.innerHTML = '';
+                    
+                    result.checks_performed.forEach(check => {
+                        const div = document.createElement('div');
+                        div.className = 'mb-2';
+                        
+                        const strong = document.createElement('strong');
+                        strong.textContent = check.name + ':';
+                        div.appendChild(strong);
+                        
+                        div.appendChild(document.createTextNode(' ' + check.description));
+                        
+                        if (check.status) {
+                            div.appendChild(document.createTextNode(' - '));
+                            const badge = document.createElement('span');
+                            badge.className = `badge ${check.status === 'PASS' ? 'bg-success' : 'bg-danger'}`;
+                            badge.textContent = check.status;
+                            div.appendChild(badge);
+                        }
+                        
+                        if (check.open_ports !== undefined) {
+                            div.appendChild(document.createTextNode(` - ${check.open_ports}/5 ports available`));
+                        }
+                        
+                        if (check.behavior) {
+                            div.appendChild(document.createTextNode(` - ${check.behavior}`));
+                        }
+                        
+                        detailsContainer.appendChild(div);
+                    });
                     
                     // Update recommendation
                     document.getElementById('algRecommendation').textContent = result.recommendation;
