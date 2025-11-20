@@ -53,6 +53,10 @@ echo "  → http://0.0.0.0:5000"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
+echo "Note: Debug mode is disabled by default."
+echo "To enable debug mode, set FLASK_DEBUG=true:"
+echo "  export FLASK_DEBUG=true"
+echo ""
 
 # Start the Flask application
 python3 web_app.py

@@ -428,7 +428,9 @@
 
             // Validate inputs
             if (!targetIp) {
-                alert('Please enter a target IP address');
+                errorDiv.className = 'error';
+                errorDiv.textContent = 'Please enter a target IP address';
+                errorDiv.style.display = 'block';
                 return;
             }
 
