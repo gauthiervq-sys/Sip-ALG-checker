@@ -54,15 +54,13 @@ def monitor():
         except (ValueError, TypeError):
             duration = 10  # Default to 10 seconds if invalid
         
-        # Create monitor
-        monitor_obj = NetworkMonitor(target_host=target_host, sample_size=duration)
+        # Create monitor with appropriate sample size (at least duration)
+        monitor_obj = NetworkMonitor(target_host=target_host, sample_size=max(duration, 30))
         
         # Perform measurements with error handling for each ping
-        successful_pings = 0
         for _ in range(duration):
             try:
-                if monitor_obj.measure_once():
-                    successful_pings += 1
+                monitor_obj.measure_once()
             except PermissionError:
                 # ping3 requires root privileges, fall back will be used automatically
                 pass

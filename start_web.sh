@@ -1,5 +1,10 @@
 #!/bin/bash
 # Start script for SIP ALG Checker Web Interface
+# Note: For production use, consider running this in a virtual environment:
+#   python3 -m venv venv
+#   source venv/bin/activate
+#   pip3 install -r requirements.txt
+#   python3 web_app.py
 
 echo "========================================"
 echo "  SIP ALG Checker Web Interface"
