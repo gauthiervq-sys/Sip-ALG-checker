@@ -252,8 +252,11 @@
             <!-- Network Monitoring Card -->
             <div class="card">
                 <h2>📊 Network Monitoring</h2>
-                <p style="margin-bottom: 20px; color: #666;">
+                <p style="margin-bottom: 15px; color: #666;">
                     Monitor network quality parameters including jitter, packet loss, and latency.
+                </p>
+                <p style="margin-bottom: 20px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 3px; font-size: 0.9em; color: #856404;">
+                    <strong>Note:</strong> Network monitoring requires elevated privileges. If monitoring fails, run the web app with sudo or use the command-line tool.
                 </p>
                 <form onsubmit="return monitorNetwork(event)">
                     <div class="form-group">
@@ -387,12 +390,21 @@
                     count: duration
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayMonitorResults(data.data);
+            .then(response => {
+                return response.json().then(data => ({
+                    status: response.status,
+                    data: data
+                }));
+            })
+            .then(result => {
+                if (result.data.success) {
+                    displayMonitorResults(result.data.data);
                 } else {
-                    showError(resultsDiv, data.error || 'Unknown error occurred');
+                    let errorMsg = result.data.error || 'Unknown error occurred';
+                    if (result.data.permission_error) {
+                        errorMsg += '<br><br><strong>Tip:</strong> You can use the command-line tool for monitoring: <code>python3 sip_alg_checker.py --monitor ' + host + ' --duration ' + duration + '</code>';
+                    }
+                    showError(resultsDiv, errorMsg);
                 }
             })
             .catch(error => {

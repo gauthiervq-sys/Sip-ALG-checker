@@ -62,13 +62,18 @@ def monitor():
         
         measurements = []
         start_time = time.time()
+        permission_error = False
         
         # Run measurements for specified duration or count
         for i in range(count):
             if (time.time() - start_time) >= duration:
                 break
-                
-            monitor.measure_once()
+            
+            try:
+                monitor.measure_once()
+            except PermissionError:
+                permission_error = True
+                break
             
             # Collect measurement data periodically
             if i % 5 == 0 or i == count - 1:
@@ -78,6 +83,14 @@ def monitor():
             # Small delay between measurements
             if i < count - 1:
                 time.sleep(max(0.5, duration / count))
+        
+        # Check if we got any measurements
+        if permission_error or monitor.packets_sent == 0:
+            return jsonify({
+                'success': False,
+                'error': 'Network monitoring requires elevated privileges. Please run the web app with sudo: "sudo python3 web_app.py" or use the command-line tool instead.',
+                'permission_error': True
+            }), 403
         
         # Get final statistics
         final_stats = monitor.get_stats()
@@ -94,6 +107,12 @@ def monitor():
             'success': False,
             'error': f'Invalid parameter: {str(e)}'
         }), 400
+    except PermissionError:
+        return jsonify({
+            'success': False,
+            'error': 'Network monitoring requires elevated privileges. Please run the web app with sudo: "sudo python3 web_app.py" or use the command-line tool instead.',
+            'permission_error': True
+        }), 403
     except Exception as e:
         return jsonify({
             'success': False,
