@@ -40,17 +40,30 @@ class NetworkMonitor:
                 start = time.time()
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(timeout)
-                sock.connect((self.target_host, 5060))  # SIP port
+                sock.connect((self.target_host, 80))  # HTTP port
                 latency = (time.time() - start) * 1000
                 sock.close()
                 return latency
             except Exception:
                 return None
         else:
-            latency = ping3.ping(self.target_host, timeout=timeout)
-            if latency is not None:
-                return latency * 1000  # Convert to ms
-            return None
+            try:
+                latency = ping3.ping(self.target_host, timeout=timeout)
+                if latency is not None:
+                    return latency * 1000  # Convert to ms
+                return None
+            except (PermissionError, OSError):
+                # Fallback to socket test if ping3 requires permissions
+                try:
+                    start = time.time()
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(timeout)
+                    sock.connect((self.target_host, 80))  # HTTP port
+                    latency = (time.time() - start) * 1000
+                    sock.close()
+                    return latency
+                except Exception:
+                    return None
     
     def measure_once(self):
         """Perform a single measurement"""
