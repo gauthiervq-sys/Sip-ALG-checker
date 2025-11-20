@@ -447,7 +447,8 @@
             const resultsDiv = document.getElementById('monitor-results');
 
             if (!targetHost) {
-                alert('Please enter a target host');
+                resultsDiv.innerHTML = '<div class="error">Please enter a target host</div>';
+                resultsDiv.classList.add('show');
                 return;
             }
 
