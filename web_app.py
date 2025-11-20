@@ -40,10 +40,12 @@ def monitor():
         duration = min(duration, 60)  # Max 60 seconds
         
         # Create monitor and run measurements
-        monitor = NetworkMonitor(target_host=host, sample_size=duration)
+        # sample_size should accommodate the maximum measurements we'll take
+        monitor = NetworkMonitor(target_host=host, sample_size=max(30, duration))
         
         start_time = time.time()
         measurement_count = 0
+        error_count = 0
         while (time.time() - start_time) < duration:
             try:
                 monitor.measure_once()
@@ -55,8 +57,13 @@ def monitor():
                     'note': 'The ping3 library requires root/administrator privileges to send ICMP packets.'
                 }), 403
             except Exception as e:
-                # Log but continue for other errors
-                pass
+                # Track errors but continue with remaining measurements
+                error_count += 1
+                # If too many errors, fail early
+                if error_count > 3 and measurement_count == 0:
+                    return jsonify({
+                        'error': f'Network monitoring failed: {str(e)}'
+                    }), 500
             time.sleep(1)  # 1 second interval
         
         # Check if we got any measurements
@@ -89,4 +96,6 @@ def monitor():
 if __name__ == '__main__':
     print("Starting SIP ALG Checker Web Interface...")
     print("Open your browser and navigate to: http://localhost:5000")
+    print("\nWARNING: This is running in debug mode for development.")
+    print("For production use, set debug=False and use a production WSGI server.")
     app.run(debug=True, host='0.0.0.0', port=5000)
