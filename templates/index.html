@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP ALG Checker - Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .status-likely {
+            background: #fee;
+            color: #c00;
+        }
+
+        .status-possible {
+            background: #ffe;
+            color: #c80;
+        }
+
+        .status-unlikely {
+            background: #efe;
+            color: #0a0;
+        }
+
+        .quality-excellent {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .quality-good {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .quality-fair {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .quality-poor {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #f5c6cb;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #c3e6cb;
+            margin-top: 15px;
+        }
+
+        .check-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .check-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .check-list .check-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .check-list .check-desc {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .recommendation {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #2196f3;
+            margin-top: 15px;
+        }
+
+        .recommendation h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 SIP ALG Checker</h1>
+            <p class="subtitle">Web Interface for VoIP Network Diagnostics</p>
+        </header>
+
+        <!-- SIP ALG Check Section -->
+        <div class="card">
+            <h2>SIP ALG Status Check</h2>
+            <p>Check if SIP ALG (Application Layer Gateway) is interfering with your VoIP traffic.</p>
+            
+            <div class="input-group" style="max-width: 400px; margin-top: 20px;">
+                <label for="local-ip">Local IP Address (optional):</label>
+                <input type="text" id="local-ip" placeholder="Auto-detect if empty">
+            </div>
+
+            <div class="button-group">
+                <button id="check-alg-btn" onclick="checkSIPALG()">
+                    Check SIP ALG Status
+                </button>
+            </div>
+
+            <div id="alg-results" class="results"></div>
+        </div>
+
+        <!-- Network Monitor Section -->
+        <div class="card">
+            <h2>Network Quality Monitor</h2>
+            <p>Monitor network quality parameters including latency, jitter, and packet loss.</p>
+
+            <div class="input-group" style="max-width: 400px; margin-top: 20px;">
+                <label for="target-host">Target Host:</label>
+                <input type="text" id="target-host" value="8.8.8.8" placeholder="e.g., 8.8.8.8">
+            </div>
+
+            <div class="input-group" style="max-width: 400px;">
+                <label for="duration">Duration (seconds):</label>
+                <input type="number" id="duration" value="60" min="10" max="3600">
+            </div>
+
+            <div class="input-group" style="max-width: 400px;">
+                <label for="interval">Interval (seconds):</label>
+                <input type="number" id="interval" value="1" min="1" max="60">
+            </div>
+
+            <div class="button-group">
+                <button id="start-monitor-btn" onclick="startMonitor()">
+                    Start Network Monitor
+                </button>
+                <button id="stop-monitor-btn" class="danger" onclick="stopMonitor()" style="display: none;">
+                    Stop Monitor
+                </button>
+            </div>
+
+            <div id="monitor-results" class="results"></div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 SIP ALG Checker | Open Source Tool for VoIP Diagnostics</p>
+        </footer>
+    </div>
+
+    <script>
+        let monitorInterval = null;
+
+        function checkSIPALG() {
+            const btn = document.getElementById('check-alg-btn');
+            const resultsDiv = document.getElementById('alg-results');
+            const localIp = document.getElementById('local-ip').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Checking...';
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('show');
+
+            fetch('/api/check-alg', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    local_ip: localIp || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayALGResults(data.results);
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                    resultsDiv.classList.add('show');
+                }
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                resultsDiv.classList.add('show');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Check SIP ALG Status';
+            });
+        }
+
+        function displayALGResults(results) {
+            const resultsDiv = document.getElementById('alg-results');
+            
+            const statusClass = results.sip_alg_detected === 'LIKELY' ? 'status-likely' :
+                              results.sip_alg_detected === 'POSSIBLE' ? 'status-possible' :
+                              'status-unlikely';
+            
+            let html = `
+                <h3>Results</h3>
+                <p><strong>Local IP:</strong> ${results.local_ip}</p>
+                <p><strong>SIP ALG Status:</strong> <span class="status-badge ${statusClass}">${results.sip_alg_detected}</span></p>
+                
+                <div class="recommendation">
+                    <h3>💡 Recommendation</h3>
+                    <p>${results.recommendation}</p>
+                </div>
+
+                <h4 style="margin-top: 20px;">Detailed Checks:</h4>
+                <ul class="check-list">
+            `;
+
+            results.checks_performed.forEach(check => {
+                html += `
+                    <li>
+                        <div class="check-name">${check.name}</div>
+                        <div class="check-desc">${check.description}</div>
+                `;
+                
+                if (check.status) {
+                    html += `<div class="check-desc"><strong>Status:</strong> ${check.status}</div>`;
+                }
+                if (check.open_ports !== undefined) {
+                    html += `<div class="check-desc"><strong>Open Ports:</strong> ${check.open_ports}/5</div>`;
+                }
+                if (check.behavior) {
+                    html += `<div class="check-desc"><strong>Behavior:</strong> ${check.behavior}</div>`;
+                }
+                
+                html += `</li>`;
+            });
+
+            html += '</ul>';
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('show');
+        }
+
+        function startMonitor() {
+            const targetHost = document.getElementById('target-host').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            const interval = parseInt(document.getElementById('interval').value);
+            const startBtn = document.getElementById('start-monitor-btn');
+            const stopBtn = document.getElementById('stop-monitor-btn');
+            const resultsDiv = document.getElementById('monitor-results');
+
+            if (!targetHost) {
+                alert('Please enter a target host');
+                return;
+            }
+
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span class="loading"></span> Starting...';
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('show');
+
+            fetch('/api/monitor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    target_host: targetHost,
+                    duration: duration,
+                    interval: interval
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultsDiv.innerHTML = `<div class="success">Monitoring started for ${targetHost}</div>`;
+                    resultsDiv.classList.add('show');
+                    startBtn.style.display = 'none';
+                    stopBtn.style.display = 'inline-block';
+                    
+                    // Start polling for results
+                    monitorInterval = setInterval(updateMonitorStatus, 1000);
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                    resultsDiv.classList.add('show');
+                }
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                resultsDiv.classList.add('show');
+            })
+            .finally(() => {
+                startBtn.disabled = false;
+                startBtn.innerHTML = 'Start Network Monitor';
+            });
+        }
+
+        function stopMonitor() {
+            const stopBtn = document.getElementById('stop-monitor-btn');
+            const startBtn = document.getElementById('start-monitor-btn');
+            
+            stopBtn.disabled = true;
+
+            fetch('/api/monitor/stop', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (monitorInterval) {
+                    clearInterval(monitorInterval);
+                    monitorInterval = null;
+                }
+                stopBtn.style.display = 'none';
+                startBtn.style.display = 'inline-block';
+            })
+            .catch(error => {
+                console.error('Error stopping monitor:', error);
+            })
+            .finally(() => {
+                stopBtn.disabled = false;
+            });
+        }
+
+        function updateMonitorStatus() {
+            fetch('/api/monitor/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.stats) {
+                    displayMonitorResults(data.stats, data.running);
+                }
+                
+                if (!data.running && monitorInterval) {
+                    clearInterval(monitorInterval);
+                    monitorInterval = null;
+                    document.getElementById('stop-monitor-btn').style.display = 'none';
+                    document.getElementById('start-monitor-btn').style.display = 'inline-block';
+                }
+
+                if (data.error) {
+                    const resultsDiv = document.getElementById('monitor-results');
+                    resultsDiv.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                    resultsDiv.classList.add('show');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching monitor status:', error);
+            });
+        }
+
+        function displayMonitorResults(stats, isRunning) {
+            const resultsDiv = document.getElementById('monitor-results');
+            
+            // Determine quality
+            let quality = 'EXCELLENT';
+            let qualityClass = 'quality-excellent';
+            if (stats.packet_loss_percent > 1 || stats.jitter_ms > 30) {
+                quality = 'POOR';
+                qualityClass = 'quality-poor';
+            } else if (stats.packet_loss_percent > 0.5 || stats.jitter_ms > 20) {
+                quality = 'FAIR';
+                qualityClass = 'quality-fair';
+            } else if (stats.jitter_ms > 10) {
+                quality = 'GOOD';
+                qualityClass = 'quality-good';
+            }
+
+            let html = `
+                <h3>Network Quality Monitor ${isRunning ? '(Running...)' : '(Completed)'}</h3>
+                <p><strong>Target:</strong> ${stats.target}</p>
+                <p><strong>Quality Assessment:</strong> <span class="status-badge ${qualityClass}">${quality}</span></p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">Packets Sent</div>
+                        <div class="value">${stats.packets_sent}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Packets Received</div>
+                        <div class="value">${stats.packets_received}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Packet Loss</div>
+                        <div class="value">${stats.packet_loss_percent}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Avg Latency</div>
+                        <div class="value">${stats.avg_latency_ms}ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Min Latency</div>
+                        <div class="value">${stats.min_latency_ms}ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Max Latency</div>
+                        <div class="value">${stats.max_latency_ms}ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Jitter</div>
+                        <div class="value">${stats.jitter_ms}ms</div>
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
