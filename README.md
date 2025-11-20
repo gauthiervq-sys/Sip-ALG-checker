@@ -12,6 +12,7 @@ A comprehensive, easy-to-use tool for checking SIP ALG (Application Layer Gatewa
   - **Quality Assessment**: Provides overall quality rating
 - **Long-term Monitoring**: Support for extended monitoring periods with configurable intervals
 - **Easy-to-Use CLI**: Simple command-line interface with clear output
+- **Web Interface**: Modern web-based dashboard for easy access (see [Web Interface](#web-interface) section)
 - **Data Export**: Save monitoring results to JSON for further analysis
 - **Comprehensive Reports**: Detailed analysis and recommendations
 - **Asterisk Integration**: Full support for Asterisk PBX with AGI scripts and automated monitoring
@@ -100,6 +101,53 @@ This will configure:
 - Outbound calling restrictions
 
 **See [SECURITY.md](SECURITY.md) for complete security guide.**
+
+## Web Interface
+
+The SIP ALG Checker now includes a modern web interface for easy access without command-line knowledge.
+
+### Starting the Web Interface
+
+```bash
+# Quick start
+./start_web.sh
+
+# Or manually
+python3 web_app.py
+```
+
+The web interface will be available at `http://localhost:5000` (or your server's IP address).
+
+### Web Interface Features
+
+- **SIP ALG Check**: Click a button to check for SIP ALG interference
+- **Network Monitoring**: Configure target IP and duration, then monitor network quality
+- **Visual Results**: Color-coded status badges and metric cards for easy interpretation
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+
+### Configuration
+
+The web interface can be configured using environment variables:
+
+```bash
+# Run on a different port
+FLASK_PORT=8080 python3 web_app.py
+
+# Bind to localhost only (more secure)
+FLASK_HOST=127.0.0.1 python3 web_app.py
+
+# Disable debug mode (recommended for production)
+FLASK_DEBUG=0 python3 web_app.py
+```
+
+### Security Notes for Web Interface
+
+- By default, the web server is accessible from all network interfaces (0.0.0.0)
+- For production use, consider:
+  - Setting `FLASK_DEBUG=0`
+  - Using a production WSGI server (e.g., gunicorn, waitress)
+  - Setting up authentication/authorization
+  - Using HTTPS with proper certificates
 
 ## Usage
 
