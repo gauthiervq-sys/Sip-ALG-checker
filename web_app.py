@@ -40,8 +40,8 @@ def monitor():
         duration = min(duration, 60)  # Max 60 seconds
         
         # Create monitor and run measurements
-        # sample_size should accommodate the maximum measurements we'll take
-        monitor = NetworkMonitor(target_host=host, sample_size=max(30, duration))
+        # sample_size should match the expected number of measurements (duration in seconds)
+        monitor = NetworkMonitor(target_host=host, sample_size=duration)
         
         start_time = time.time()
         measurement_count = 0
