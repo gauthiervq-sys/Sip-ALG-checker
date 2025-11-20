@@ -402,7 +402,10 @@
                 } else {
                     let errorMsg = result.data.error || 'Unknown error occurred';
                     if (result.data.permission_error) {
-                        errorMsg += '<br><br><strong>Tip:</strong> You can use the command-line tool for monitoring: <code>python3 sip_alg_checker.py --monitor ' + host + ' --duration ' + duration + '</code>';
+                        // Escape user input to prevent XSS
+                        const escapedHost = escapeHtml(host);
+                        const escapedDuration = escapeHtml(duration.toString());
+                        errorMsg += '<br><br><strong>Tip:</strong> You can use the command-line tool for monitoring: <code>python3 sip_alg_checker.py --monitor ' + escapedHost + ' --duration ' + escapedDuration + '</code>';
                     }
                     showError(resultsDiv, errorMsg);
                 }
@@ -481,8 +484,33 @@
             resultsDiv.style.display = 'block';
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function showError(resultsDiv, message) {
-            resultsDiv.innerHTML = `<strong>Error:</strong> ${message}`;
+            // Create error message safely
+            const errorDiv = document.createElement('div');
+            const strongElem = document.createElement('strong');
+            strongElem.textContent = 'Error: ';
+            errorDiv.appendChild(strongElem);
+            
+            // Check if message contains HTML (from server)
+            if (message.includes('<br>') || message.includes('<code>')) {
+                // For trusted server messages, use innerHTML
+                const msgSpan = document.createElement('span');
+                msgSpan.innerHTML = message;
+                errorDiv.appendChild(msgSpan);
+            } else {
+                // For untrusted content, use textContent
+                const textNode = document.createTextNode(message);
+                errorDiv.appendChild(textNode);
+            }
+            
+            resultsDiv.innerHTML = '';
+            resultsDiv.appendChild(errorDiv);
             resultsDiv.className = 'results error';
             resultsDiv.style.display = 'block';
         }

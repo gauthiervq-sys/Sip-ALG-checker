@@ -30,6 +30,12 @@ def check_alg():
             'success': True,
             'data': results
         })
+    except PermissionError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Permission denied: Unable to bind to ports. Some checks may require elevated privileges.',
+            'permission_error': True
+        }), 403
     except Exception as e:
         return jsonify({
             'success': False,
@@ -80,9 +86,11 @@ def monitor():
                 stats = monitor.get_stats()
                 measurements.append(stats)
             
-            # Small delay between measurements
+            # Delay between measurements - ensure reasonable spacing
+            # Minimum 1 second delay to avoid overwhelming the target
             if i < count - 1:
-                time.sleep(max(0.5, duration / count))
+                calculated_delay = duration / count
+                time.sleep(max(1.0, min(calculated_delay, 5.0)))
         
         # Check if we got any measurements
         if permission_error or monitor.packets_sent == 0:
@@ -120,4 +128,8 @@ def monitor():
         }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    import os
+    # Debug mode should be disabled in production
+    # Set FLASK_DEBUG=1 environment variable to enable debug mode
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode)
